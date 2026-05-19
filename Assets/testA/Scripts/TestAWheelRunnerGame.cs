@@ -37,10 +37,12 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     [SerializeField] private Material darkMaterial;
 
     private const float TrackWidth = 7.2f;
-    private const float TrackLength = 150f;
-    private const float FinishZ = 142f;
+    private const float TrackLength = 380f;
+    private const float FinishZ = 368f;
+    private const float TrackStripeSpacing = 9f;
 
     private readonly List<ColorPad> colorPads = new List<ColorPad>();
+    private readonly List<ColorBaffle> colorBaffles = new List<ColorBaffle>();
     private readonly List<GameObject> spawnedObjects = new List<GameObject>();
 
     private Transform runnerRoot;
@@ -103,6 +105,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         HandleInput();
         MoveRunner();
         CheckPads();
+        CheckBaffles();
         CheckFinish();
         UpdateUi();
     }
@@ -142,6 +145,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         BuildLightingAndCamera();
         BuildTrack();
         BuildColorPads();
+        BuildColorBaffles();
         BuildRunner();
         BuildUi();
     }
@@ -158,6 +162,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
 
         spawnedObjects.Clear();
         colorPads.Clear();
+        colorBaffles.Clear();
     }
 
     private void BuildLightingAndCamera()
@@ -202,12 +207,13 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         track.transform.localScale = new Vector3(TrackWidth, 0.1f, TrackLength);
         SetMaterial(track, trackMaterial);
 
-        for (int i = 0; i < 16; i++)
+        int stripeCount = Mathf.FloorToInt((FinishZ - 8f) / TrackStripeSpacing);
+        for (int i = 0; i < stripeCount; i++)
         {
             GameObject stripe = GameObject.CreatePrimitive(PrimitiveType.Cube);
             Register(stripe);
             stripe.name = "Track Soft Stripe";
-            stripe.transform.position = new Vector3(0f, 0.01f, 5f + i * 9f);
+            stripe.transform.position = new Vector3(0f, 0.01f, 5f + i * TrackStripeSpacing);
             stripe.transform.localScale = new Vector3(TrackWidth, 0.025f, 4.4f);
             SetMaterial(stripe, i % 2 == 0 ? trackMaterial : CreateMaterial("Runtime Track Stripe", new Color(0.91f, 0.84f, 0.96f)));
         }
@@ -244,6 +250,21 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         AddPad("Green Growth Pad 4", TestAWheelColor.Green, -0.7f, 100f, 8.2f);
         AddPad("Yellow Shrink Pad 3", TestAWheelColor.Yellow, 1.25f, 116f, 7f);
         AddPad("Green Growth Pad 5", TestAWheelColor.Green, 0f, 130f, 6.8f);
+        AddPad("Blue Shrink Pad 4", TestAWheelColor.Blue, 1.4f, 148f, 6.5f);
+        AddPad("Yellow Shrink Pad 4", TestAWheelColor.Yellow, -0.9f, 163f, 7f);
+        AddPad("Green Growth Pad 6", TestAWheelColor.Green, -1.2f, 178f, 6.8f);
+        AddPad("Blue Shrink Pad 5", TestAWheelColor.Blue, 1.35f, 193f, 6.4f);
+        AddPad("Yellow Shrink Pad 5", TestAWheelColor.Yellow, 0.5f, 208f, 7.2f);
+        AddPad("Green Growth Pad 7", TestAWheelColor.Green, -0.6f, 223f, 6.6f);
+        AddPad("Blue Shrink Pad 6", TestAWheelColor.Blue, 1.5f, 238f, 6.2f);
+        AddPad("Yellow Shrink Pad 6", TestAWheelColor.Yellow, -0.4f, 253f, 6.8f);
+        AddPad("Green Growth Pad 8", TestAWheelColor.Green, -1.3f, 268f, 6.5f);
+        AddPad("Blue Shrink Pad 7", TestAWheelColor.Blue, 1.25f, 283f, 6.6f);
+        AddPad("Yellow Shrink Pad 7", TestAWheelColor.Yellow, 0.8f, 298f, 7f);
+        AddPad("Green Growth Pad 9", TestAWheelColor.Green, -0.5f, 313f, 6.7f);
+        AddPad("Blue Shrink Pad 8", TestAWheelColor.Blue, 1.45f, 328f, 6.4f);
+        AddPad("Yellow Shrink Pad 8", TestAWheelColor.Yellow, -1.1f, 343f, 6.9f);
+        AddPad("Green Growth Pad 10", TestAWheelColor.Green, 0.35f, 358f, 6.3f);
     }
 
     private void AddPad(string name, TestAWheelColor padColor, float x, float z, float length)
@@ -255,6 +276,36 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         pad.transform.localScale = new Vector3(1.15f, 0.12f, length);
         SetMaterial(pad, GetMaterial(padColor));
         colorPads.Add(new ColorPad(padColor, x, z - length * 0.5f, z + length * 0.5f, 0.78f, pad));
+    }
+
+    private void BuildColorBaffles()
+    {
+        //AddBaffle("Yellow Color Baffle", TestAWheelColor.Yellow, 30f);
+        AddBaffle("Blue Color Baffle", TestAWheelColor.Blue, 100f);
+    }
+
+    private void AddBaffle(string name, TestAWheelColor baffleColor, float z)
+    {
+        Material opaqueMaterial = GetMaterial(baffleColor);
+        Material gateMaterial = CreateTransparentMaterial("Runtime Baffle " + baffleColor, GetColor(baffleColor));
+
+        GameObject gate = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Register(gate);
+        gate.name = name;
+        gate.transform.position = new Vector3(0f, 1.85f, z);
+        gate.transform.localScale = new Vector3(TrackWidth - 0.35f, 3.7f, 0.14f);
+        SetMaterial(gate, gateMaterial);
+        RemoveCollider(gate);
+
+        GameObject baseStrip = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Register(baseStrip);
+        baseStrip.name = name + " Base";
+        baseStrip.transform.position = new Vector3(0f, 0.12f, z);
+        baseStrip.transform.localScale = new Vector3(TrackWidth - 0.15f, 0.2f, 0.38f);
+        SetMaterial(baseStrip, opaqueMaterial);
+        RemoveCollider(baseStrip);
+
+        colorBaffles.Add(new ColorBaffle(baffleColor, z, 0.42f, gate));
     }
 
     private void BuildRunner()
@@ -315,7 +366,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
 
         scoreText = CreateText(canvasObject.transform, "Score Text", "Score\n0", new Vector2(28f, -28f), TextAnchor.UpperLeft, 32, whiteMaterial.color);
         heightText = CreateText(canvasObject.transform, "Height Text", "Height 0.72", new Vector2(-28f, -28f), TextAnchor.UpperRight, 24, whiteMaterial.color);
-        messageText = CreateText(canvasObject.transform, "Message Text", "拖动左右移动，绿色轮子压绿色长条会升高；按 1/2/3 可切换颜色，R 重开", new Vector2(0f, 72f), TextAnchor.LowerCenter, 20, whiteMaterial.color);
+        messageText = CreateText(canvasObject.transform, "Message Text", "拖动左右移动；穿过彩色挡板会改变轮子颜色；同色长条会升高，R 重开", new Vector2(0f, 72f), TextAnchor.LowerCenter, 20, whiteMaterial.color);
 
         GameObject sliderObject = new GameObject("Level Progress");
         Register(sliderObject);
@@ -494,6 +545,46 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         messageText.color = isMatch ? GetColor(wheelColor) : GetColor(padColor);
     }
 
+    private void CheckBaffles()
+    {
+        for (int i = 0; i < colorBaffles.Count; i++)
+        {
+            ColorBaffle baffle = colorBaffles[i];
+            if (baffle.Consumed || Mathf.Abs(zPosition - baffle.Z) > baffle.HalfThickness)
+            {
+                continue;
+            }
+
+            baffle.Consumed = true;
+            colorBaffles[i] = baffle;
+            SetWheelColor(baffle.Color);
+            ShowBaffleMessage(baffle.Color);
+            score += 1;
+            PulseBaffle(baffle.Visual);
+        }
+    }
+
+    private void PulseBaffle(GameObject gate)
+    {
+        if (gate == null)
+        {
+            return;
+        }
+
+        gate.transform.localScale = new Vector3(gate.transform.localScale.x * 1.06f, gate.transform.localScale.y, gate.transform.localScale.z * 1.35f);
+    }
+
+    private void ShowBaffleMessage(TestAWheelColor baffleColor)
+    {
+        if (messageText == null)
+        {
+            return;
+        }
+
+        messageText.text = "Very Good!";
+        messageText.color = GetColor(baffleColor);
+    }
+
     private void CheckFinish()
     {
         if (zPosition < FinishZ)
@@ -614,6 +705,50 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         material.name = name;
         material.color = color;
         return material;
+    }
+
+    private static Material CreateTransparentMaterial(string name, Color color)
+    {
+        Material material = CreateMaterial(name, color);
+        Color transparent = color;
+        transparent.a = 0.42f;
+        material.color = transparent;
+        material.SetFloat("_Mode", 3f);
+        material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        material.SetInt("_ZWrite", 0);
+        material.DisableKeyword("_ALPHATEST_ON");
+        material.EnableKeyword("_ALPHABLEND_ON");
+        material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+        material.renderQueue = 3000;
+        return material;
+    }
+
+    private static void RemoveCollider(GameObject gameObject)
+    {
+        Collider collider = gameObject.GetComponent<Collider>();
+        if (collider != null)
+        {
+            Destroy(collider);
+        }
+    }
+
+    private struct ColorBaffle
+    {
+        public readonly TestAWheelColor Color;
+        public readonly float Z;
+        public readonly float HalfThickness;
+        public readonly GameObject Visual;
+        public bool Consumed;
+
+        public ColorBaffle(TestAWheelColor color, float z, float halfThickness, GameObject visual)
+        {
+            Color = color;
+            Z = z;
+            HalfThickness = halfThickness;
+            Visual = visual;
+            Consumed = false;
+        }
     }
 
     private struct ColorPad
