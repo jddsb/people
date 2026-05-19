@@ -1,16 +1,12 @@
 /Library
-/@cfg_lua
-/Assets/@lua_cfg/*.meta
-/Assets/@lua_cfg/**/*.meta
-/Assets/@lua_enum/*.meta
-/Assets/@lua_enum/*.lua
-/Assets/@lua_enum/**/*.meta
+
 /.idea
 /*.pidb
 /*.csproj
 /*.unityproj
 /*.sln
 /*.userprefs
+/*.log
 
 /Temp
 /obj
@@ -34,57 +30,23 @@
 /Assets/StreamingAssets/config_files
 /Assets/StreamingAssets/config_files.meta
 
-/PackResRoot
-/Sandbox
 
-/Bundles
-/Assets/StreamingAssets/BuildinFiles
-/Assets/StreamingAssets/BuildinFiles.meta
-/Assets/YooAssets/b_tree
-/Assets/YooAssets/data_dat
-/Assets/YooAssets/lua
-/Assets/YooAssets/wwise
-/Assets/YooAssets/wwise_cdn
-/Assets/YooAssets/video
 /Assets/svc.shadervariants
 /Assets/svc.shadervariants.meta
 
-/Assets/FlameRes/Temp/*
-/Assets/FlameRes/Temp.meta
-/Assets/client-code/LuaFramework/Lua/DataTable/*.meta
-/Assets/client-code/LuaFramework/LuaEditor/PBMsgTips/*.meta
-/Assets/client-code/LuaFramework/LuaEditor/DataTableTips/*.meta
-
-/Assets/StreamingAssets/build_info.txt
-/Assets/StreamingAssets/build_info.txt.meta
-/chat_history
-/Assets/StreamingAssets/recordings
 /.idea
 Assets/client-code/LuaFramework/.idea/
 .vscode/
 .cursor/
 .github/
-conf/data_dat/sheet_cfg.dat
-conf/data_dat/single_cfg.dat
-Assets/client-code/protoCodes/*.meta
-Assets/client-code/protoCodes_AOT/*.meta
-Assets/client-code/LuaFramework/Lua/GameNet/*.meta
-Assets/client-code-update/Network/Msg/*.meta
+
 
 /build
-/10000
-/PreDownload
+
 /[Uu]ser[Ss]ettings/
-Logs
 
-/DataAndroid
-/DataIOS
-/DataPC
-/DataMAC
-/branchName.txt
 
-/Assets/filelist.txt
-/Assets/filelist.txt.meta
+
 
 #Wwise
 *.cache
@@ -125,12 +87,7 @@ Assets/YooAssets/lua/lua_jit64.bytes
 Assets/YooAssets/lua/LuaManifest.bytes
 
 *.blob
-/WorldExport_Flame
-/Assets/FlameWorldMap/FlameWorldMap/Houdini2Unity.zip
-Assets/FlameWorldMap/FlameWorldMap/Houdini2Unity.zip.meta
-/Assets/FlameWorldMap/ProvinceDivision/Houdini2Unity.zip
-/Assets/FlameWorldMap/FlameMapBehaviour/Houdini2Unity.zip
-/Assets/FlameWorldMap/FlameMapBehaviour/Houdini2Unity.zip.meta
+
 Tools/PackageManager/test/
 Tools/PackageManager/PackageManager/obj/
 Tools/PackageManager/PackageManager/bin/
@@ -150,16 +107,5 @@ HybridCLRData/hybridclr_repo
 HybridCLRData/il2cpp_plus_repo
 .emmyrc.json
 emmy.config.json
-Tools/BuildTools/.idea/
-/HoudiniTemp
-Tools/BuildTools/BuildTools/bin/
-Tools/BuildTools/BuildTools/obj/
-Tools/BuildTools/CSharpBase/bin/
-Tools/BuildTools/CSharpBase/obj/
-Tools/BuildTools/TableCore/bin/
-Tools/BuildTools/TableCore/obj/
-Tools/BuildTools/.vs/
-/TaskGetBuildMapNameConfig.txt
-Assets/_LSY.meta
-Assets/_LSY
-confLocalTool/config/cache/
+
+
