@@ -19,12 +19,6 @@
       },
       "url": "https://packages.tuanjie.cn"
     },
-    "com.bytedance.starksdk": {
-      "version": "file:../Assets/../LocalPackages/com.bytedance.starksdk@6.7.4",
-      "depth": 0,
-      "source": "local",
-      "dependencies": {}
-    },
     "com.kuaishou.minigame": {
       "version": "https://github.com/ksminigame/minigame-tuanjie-transform-sdk.git",
       "depth": 0,

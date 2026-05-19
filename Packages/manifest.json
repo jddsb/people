@@ -2,7 +2,6 @@
   "dependencies": {
     "cn.tuanjie.minihost": "1.0.18",
     "cn.tuanjie.wx-uploader": "0.1.4",
-    "com.bytedance.starksdk": "file:../Assets/../LocalPackages/com.bytedance.starksdk@6.7.4",
     "com.kuaishou.minigame": "https://github.com/ksminigame/minigame-tuanjie-transform-sdk.git",
     "com.qq.weixin.minigame": "https://gitee.com/wechat-minigame/minigame-tuanjie-transform-sdk.git#v0.1.18",
     "com.tencent.puerts.agent": "file:D:/puerTS/PuerTS_Agent_3.0.2/agent",
