@@ -133,13 +133,14 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
 
     private void GetCameraRig(out Vector3 targetPosition, out Vector3 lookTarget)
     {
-        float stackTop = currentRadius * 2f + 0.04f;
-        float characterTop = stackTop + 1.95f;
-        float cameraHeight = characterTop + 3.8f;
-        float lookAheadZ = 11f;
-        float lookHeight = Mathf.Max(0.85f, stackTop * 0.22f + 0.55f);
+        float wheelRadius = Mathf.Max(currentRadius, targetRadius);
+        float characterTop = wheelRadius * 2f + 2.1f;
+        float backDistance = 9.5f + wheelRadius * 0.62f;
+        float cameraHeight = characterTop + 5.2f + wheelRadius * 0.42f;
+        float lookAheadZ = 14f + wheelRadius * 1.35f;
+        float lookHeight = 1.05f;
 
-        targetPosition = runnerRoot.position + new Vector3(0f, cameraHeight, -8.2f);
+        targetPosition = runnerRoot.position + new Vector3(0f, cameraHeight, -backDistance);
         lookTarget = runnerRoot.position + new Vector3(0f, lookHeight, lookAheadZ);
     }
 
