@@ -123,11 +123,22 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
             return;
         }
 
-        Vector3 targetPosition = runnerRoot.position + new Vector3(0f, 5.2f, -8.2f);
-        Vector3 lookTarget = runnerRoot.position + new Vector3(0f, currentRadius * 1.7f + 0.9f, 2.6f);
+        GetCameraRig(out Vector3 targetPosition, out Vector3 lookTarget);
         Quaternion targetRotation = Quaternion.LookRotation(lookTarget - targetPosition, Vector3.up);
         mainCamera.transform.position = Vector3.Lerp(mainCamera.transform.position, targetPosition, Time.deltaTime * 6f);
         mainCamera.transform.rotation = Quaternion.Lerp(mainCamera.transform.rotation, targetRotation, Time.deltaTime * 7f);
+    }
+
+    private void GetCameraRig(out Vector3 targetPosition, out Vector3 lookTarget)
+    {
+        float stackTop = currentRadius * 2f + 0.04f;
+        float characterTop = stackTop + 1.95f;
+        float cameraHeight = characterTop + 3.8f;
+        float lookAheadZ = 11f;
+        float lookHeight = Mathf.Max(0.85f, stackTop * 0.22f + 0.55f);
+
+        targetPosition = runnerRoot.position + new Vector3(0f, cameraHeight, -8.2f);
+        lookTarget = runnerRoot.position + new Vector3(0f, lookHeight, lookAheadZ);
     }
 
     private void BuildFallbackMaterials()
