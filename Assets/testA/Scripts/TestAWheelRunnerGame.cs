@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -21,7 +23,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     [SerializeField] private float initialWheelRadius = 0.72f;
     [SerializeField] private float radiusStep = 0.36f;
     [SerializeField] private float minWheelRadius = 0.28f;
-    [SerializeField] private float maxWheelRadius = 2.35f;
+    [SerializeField] private float maxWheelRadius = 5f;
 
     [Header("Art Materials")]
     [SerializeField] private Material greenMaterial;
@@ -40,6 +42,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     private const float TrackLength = 380f;
     private const float FinishZ = 368f;
     private const float TrackStripeSpacing = 9f;
+    private const float PadHitExtraHalfWidth = 0.38f;
 
     private readonly List<ColorPad> colorPads = new List<ColorPad>();
     private readonly List<ColorBaffle> colorBaffles = new List<ColorBaffle>();
@@ -64,9 +67,15 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     private int score;
     private bool isDragging;
     private bool isFinished;
+    private int debugPadHitsThisFrame;
 
     private void Awake()
     {
+        if (Mathf.Approximately(maxWheelRadius, 2.35f))
+        {
+            maxWheelRadius = 5f;
+        }
+
         wheelColor = initialWheelColor;
         currentRadius = initialWheelRadius;
         targetRadius = initialWheelRadius;
@@ -104,6 +113,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
 
         HandleInput();
         MoveRunner();
+        debugPadHitsThisFrame = 0;
         CheckPads();
         CheckBaffles();
         CheckFinish();
@@ -281,7 +291,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     private void BuildColorBaffles()
     {
         //AddBaffle("Yellow Color Baffle", TestAWheelColor.Yellow, 30f);
-        AddBaffle("Blue Color Baffle", TestAWheelColor.Blue, 100f);
+        //AddBaffle("Blue Color Baffle", TestAWheelColor.Blue, 100f);
     }
 
     private void AddBaffle(string name, TestAWheelColor baffleColor, float z)
@@ -505,24 +515,90 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
 
     private void CheckPads()
     {
+        float targetBeforeFrame = targetRadius;
         for (int i = 0; i < colorPads.Count; i++)
         {
             ColorPad pad = colorPads[i];
-            if (pad.Consumed || zPosition < pad.StartZ || zPosition > pad.EndZ || Mathf.Abs(xPosition - pad.X) > pad.HalfWidth + currentRadius * 0.42f)
+            float xDelta = Mathf.Abs(xPosition - pad.X);
+            float xThreshold = pad.HalfWidth + PadHitExtraHalfWidth;
+            if (pad.Consumed || zPosition < pad.StartZ || zPosition > pad.EndZ || xDelta > xThreshold)
             {
                 continue;
             }
 
-            pad.Consumed = true;
-            colorPads[i] = pad;
             bool isMatch = pad.Color == wheelColor;
             float delta = isMatch ? radiusStep : -radiusStep;
-            targetRadius = Mathf.Clamp(targetRadius + delta, minWheelRadius, maxWheelRadius);
+            float previousTargetRadius = targetRadius;
+            float newTargetRadius = Mathf.Clamp(targetRadius + delta, minWheelRadius, maxWheelRadius);
+            bool radiusChanged = !Mathf.Approximately(newTargetRadius, previousTargetRadius);
+            bool atMaxBeforeHit = Mathf.Approximately(previousTargetRadius, maxWheelRadius);
+
+            pad.Consumed = true;
+            colorPads[i] = pad;
+            targetRadius = newTargetRadius;
             score = Mathf.Max(0, score + (isMatch ? 1 : -1));
             PulsePad(pad.Visual, isMatch);
-            ShowPadMessage(isMatch, pad.Color);
+            ShowPadMessage(isMatch, pad.Color, radiusChanged);
+            debugPadHitsThisFrame++;
+
+            // #region agent log
+            AgentDebugLog(
+                atMaxBeforeHit && isMatch && !radiusChanged ? "A" : (!isMatch && debugPadHitsThisFrame > 1 ? "B" : (isMatch ? "D" : "C")),
+                "TestAWheelRunnerGame.cs:CheckPads",
+                "pad_triggered",
+                "{\"frame\":" + Time.frameCount +
+                ",\"padIndex\":" + i +
+                ",\"padColor\":\"" + pad.Color + "\"" +
+                ",\"wheelColor\":\"" + wheelColor + "\"" +
+                ",\"isMatch\":" + (isMatch ? "true" : "false") +
+                ",\"prevTarget\":" + previousTargetRadius.ToString("F3") +
+                ",\"newTarget\":" + newTargetRadius.ToString("F3") +
+                ",\"delta\":" + delta.ToString("F3") +
+                ",\"radiusChanged\":" + (radiusChanged ? "true" : "false") +
+                ",\"atMaxBeforeHit\":" + (atMaxBeforeHit ? "true" : "false") +
+                ",\"maxWheelRadius\":" + maxWheelRadius.ToString("F3") +
+                ",\"xPos\":" + xPosition.ToString("F3") +
+                ",\"padX\":" + pad.X.ToString("F3") +
+                ",\"xDelta\":" + xDelta.ToString("F3") +
+                ",\"xThreshold\":" + xThreshold.ToString("F3") +
+                ",\"hitsThisFrame\":" + debugPadHitsThisFrame + "}");
+            // #endregion
+        }
+
+        if (debugPadHitsThisFrame > 0)
+        {
+            // #region agent log
+            AgentDebugLog(
+                debugPadHitsThisFrame > 1 ? "B" : "summary",
+                "TestAWheelRunnerGame.cs:CheckPads",
+                "frame_pad_summary",
+                "{\"frame\":" + Time.frameCount +
+                ",\"hitsThisFrame\":" + debugPadHitsThisFrame +
+                ",\"targetBefore\":" + targetBeforeFrame.ToString("F3") +
+                ",\"targetAfter\":" + targetRadius.ToString("F3") +
+                ",\"netDelta\":" + (targetRadius - targetBeforeFrame).ToString("F3") + "}");
+            // #endregion
         }
     }
+
+    // #region agent log
+    private static void AgentDebugLog(string hypothesisId, string location, string message, string dataJson)
+    {
+        try
+        {
+            string path = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "debug-5c1c4f.log"));
+            long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            string line = "{\"sessionId\":\"5c1c4f\",\"hypothesisId\":\"" + hypothesisId +
+                          "\",\"location\":\"" + location + "\",\"message\":\"" + message +
+                          "\",\"timestamp\":" + timestamp + ",\"data\":" + dataJson + "}";
+            File.AppendAllText(path, line + "\n");
+        }
+        catch
+        {
+            // ignored
+        }
+    }
+    // #endregion
 
     private void PulsePad(GameObject pad, bool isMatch)
     {
@@ -534,14 +610,22 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         pad.transform.localScale = new Vector3(pad.transform.localScale.x, isMatch ? 0.22f : 0.05f, pad.transform.localScale.z);
     }
 
-    private void ShowPadMessage(bool isMatch, TestAWheelColor padColor)
+    private void ShowPadMessage(bool isMatch, TestAWheelColor padColor, bool radiusChanged)
     {
         if (messageText == null)
         {
             return;
         }
 
-        messageText.text = isMatch ? "颜色相同：轮子升高！" : "颜色不同：轮子降低！";
+        if (isMatch && !radiusChanged)
+        {
+            messageText.text = "已达最大高度！";
+        }
+        else
+        {
+            messageText.text = isMatch ? "颜色相同：轮子升高！" : "颜色不同：轮子降低！";
+        }
+
         messageText.color = isMatch ? GetColor(wheelColor) : GetColor(padColor);
     }
 
