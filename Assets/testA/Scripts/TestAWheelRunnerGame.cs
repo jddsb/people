@@ -17,12 +17,13 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     [SerializeField] private TestAWheelColor initialWheelColor = TestAWheelColor.Green;
     [SerializeField] private float forwardSpeed = 8.5f;
     [SerializeField] private float maxForwardSpeed = 22f;
+    [SerializeField] private float speedRampDistance = 500f;
     [SerializeField] private float horizontalSpeed = 9f;
     [SerializeField] private float dragSensitivity = 0.018f;
     [SerializeField] private float initialWheelRadius = 0.72f;
     [SerializeField] private float radiusStep = 0.36f;
     [SerializeField] private float minWheelRadius = 0.28f;
-    [SerializeField] private float maxWheelRadius = 5f;
+    [SerializeField] private float maxWheelRadius = 12f;
 
     [Header("Art Materials")]
     [SerializeField] private Material greenMaterial;
@@ -38,8 +39,10 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     [SerializeField] private Material darkMaterial;
 
     private const float TrackWidth = 7.2f;
-    private const float TrackLength = 760f;
-    private const float FinishZ = 736f;
+    private const float TrackLoopStartZ = 2f;
+    private const float TrackLoopLength = 718f;
+    private const int LoopSegmentCount = 4;
+    private const float LoopSegmentRecycleMargin = 80f;
     private const float TrackContentZScale = 2f;
     private const float TrackStripeSpacing = 9f;
     private const float PadHitExtraHalfWidth = 0.38f;
@@ -47,11 +50,12 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     private readonly List<ColorPad> colorPads = new List<ColorPad>();
     private readonly List<ColorBaffle> colorBaffles = new List<ColorBaffle>();
     private readonly List<GameObject> spawnedObjects = new List<GameObject>();
+    private readonly float[] loopSegmentStarts = new float[LoopSegmentCount];
+    private readonly Transform[] loopSegmentRoots = new Transform[LoopSegmentCount];
 
     private Transform runnerRoot;
     private Transform wheel;
     private Transform characterRoot;
-    private Transform finishBanner;
     private Camera mainCamera;
     private Text scoreText;
     private Text heightText;
@@ -62,18 +66,19 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     private float currentRadius;
     private float targetRadius;
     private float xPosition;
-    private float zPosition = 2f;
+    private float zPosition = TrackLoopStartZ;
+    private float totalDistanceTraveled;
+    private int lapCount;
     private float lastPointerX;
     private int score;
     private bool isDragging;
-    private bool isFinished;
     private float wheelRollAngle;
 
     private void Awake()
     {
-        if (Mathf.Approximately(maxWheelRadius, 2.35f))
+        if (Mathf.Approximately(maxWheelRadius, 2.35f) || Mathf.Approximately(maxWheelRadius, 5f))
         {
-            maxWheelRadius = 5f;
+            maxWheelRadius = 12f;
         }
 
         wheelColor = initialWheelColor;
@@ -106,16 +111,10 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
             SetWheelColor(TestAWheelColor.Yellow);
         }
 
-        if (isFinished)
-        {
-            return;
-        }
-
         HandleInput();
         MoveRunner();
         CheckPads();
         CheckBaffles();
-        CheckFinish();
         UpdateUi();
     }
 
@@ -163,8 +162,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     {
         ClearSpawnedObjects();
         BuildLightingAndCamera();
-        BuildTrack();
-        BuildColorPads();
+        BuildLoopSegments();
         BuildColorBaffles();
         BuildRunner();
         BuildUi();
@@ -218,89 +216,110 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         cameraObject.transform.rotation = Quaternion.Euler(35f, 0f, 0f);
     }
 
-    private void BuildTrack()
+    private void BuildLoopSegments()
+    {
+        for (int i = 0; i < LoopSegmentCount; i++)
+        {
+            float segmentStart = TrackLoopStartZ + i * TrackLoopLength;
+            loopSegmentStarts[i] = segmentStart;
+
+            GameObject segmentRoot = new GameObject("Loop Segment " + i);
+            Register(segmentRoot);
+            segmentRoot.transform.position = new Vector3(0f, 0f, segmentStart);
+            loopSegmentRoots[i] = segmentRoot.transform;
+
+            BuildTrackSegmentVisuals(segmentRoot.transform);
+            BuildColorPadsForSegment(segmentRoot.transform, i == 0);
+        }
+    }
+
+    private void BuildTrackSegmentVisuals(Transform parent)
     {
         GameObject track = GameObject.CreatePrimitive(PrimitiveType.Cube);
         Register(track);
-        track.name = "Long Pastel Track";
-        track.transform.position = new Vector3(0f, -0.05f, TrackLength * 0.5f);
-        track.transform.localScale = new Vector3(TrackWidth, 0.1f, TrackLength);
+        track.name = "Loop Pastel Track";
+        track.transform.SetParent(parent, false);
+        track.transform.localPosition = new Vector3(0f, -0.05f, TrackLoopLength * 0.5f);
+        track.transform.localScale = new Vector3(TrackWidth, 0.1f, TrackLoopLength);
         SetMaterial(track, trackMaterial);
 
-        int stripeCount = Mathf.FloorToInt((FinishZ - 8f) / TrackStripeSpacing);
+        int stripeCount = Mathf.FloorToInt((TrackLoopLength - 4f) / TrackStripeSpacing);
         for (int i = 0; i < stripeCount; i++)
         {
             GameObject stripe = GameObject.CreatePrimitive(PrimitiveType.Cube);
             Register(stripe);
             stripe.name = "Track Soft Stripe";
-            stripe.transform.position = new Vector3(0f, 0.01f, 5f + i * TrackStripeSpacing);
+            stripe.transform.SetParent(parent, false);
+            stripe.transform.localPosition = new Vector3(0f, 0.01f, 3f + i * TrackStripeSpacing);
             stripe.transform.localScale = new Vector3(TrackWidth, 0.025f, 4.4f);
             SetMaterial(stripe, i % 2 == 0 ? trackMaterial : CreateMaterial("Runtime Track Stripe", new Color(0.91f, 0.84f, 0.96f)));
         }
 
-        CreateWall("Left Purple Wall", new Vector3(-TrackWidth * 0.5f - 0.45f, 1.4f, TrackLength * 0.5f), new Vector3(0.55f, 2.8f, TrackLength), wallMaterial);
-        CreateWall("Right Purple Wall", new Vector3(TrackWidth * 0.5f + 0.45f, 1.4f, TrackLength * 0.5f), new Vector3(0.55f, 2.8f, TrackLength), wallMaterial);
-
-        GameObject finish = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        Register(finish);
-        finish.name = "Yellow Finish Platform";
-        finish.transform.position = new Vector3(0f, 0.12f, FinishZ);
-        finish.transform.localScale = new Vector3(TrackWidth, 0.24f, 8f);
-        SetMaterial(finish, yellowMaterial);
-
-        GameObject banner = new GameObject("Finish Banner");
-        Register(banner);
-        finishBanner = banner.transform;
-        finishBanner.position = new Vector3(0f, 3.8f, FinishZ + 2f);
-        CreatePrimitiveChild(finishBanner, "Finish Bar", PrimitiveType.Cube, Vector3.zero, new Vector3(5.8f, 0.18f, 0.18f), yellowMaterial);
-        CreatePrimitiveChild(finishBanner, "Left Pole", PrimitiveType.Cube, new Vector3(-2.9f, -1.8f, 0f), new Vector3(0.16f, 3.6f, 0.16f), darkMaterial);
-        CreatePrimitiveChild(finishBanner, "Right Pole", PrimitiveType.Cube, new Vector3(2.9f, -1.8f, 0f), new Vector3(0.16f, 3.6f, 0.16f), darkMaterial);
+        CreateWallChild(parent, "Left Purple Wall", new Vector3(-TrackWidth * 0.5f - 0.45f, 1.4f, TrackLoopLength * 0.5f), new Vector3(0.55f, 2.8f, TrackLoopLength));
+        CreateWallChild(parent, "Right Purple Wall", new Vector3(TrackWidth * 0.5f + 0.45f, 1.4f, TrackLoopLength * 0.5f), new Vector3(0.55f, 2.8f, TrackLoopLength));
     }
 
-    private void BuildColorPads()
+    private void CreateWallChild(Transform parent, string name, Vector3 localPosition, Vector3 localScale)
     {
-        AddScaledPad("Green Growth Pad 1", TestAWheelColor.Green, -1.45f, 17f, 5.7f);
-        AddScaledPad("Blue Shrink Pad 1", TestAWheelColor.Blue, 1.45f, 17f, 5.7f);
-        AddScaledPad("Yellow Shrink Pad 1", TestAWheelColor.Yellow, 0.35f, 31f, 7f);
-        AddScaledPad("Green Growth Pad 2", TestAWheelColor.Green, -1.35f, 43f, 6.4f);
-        AddScaledPad("Blue Shrink Pad 2", TestAWheelColor.Blue, 1.35f, 43f, 6.4f);
-        AddScaledPad("Green Growth Pad 3", TestAWheelColor.Green, 0.25f, 58f, 8.5f);
-        AddScaledPad("Yellow Shrink Pad 2", TestAWheelColor.Yellow, -1.55f, 73f, 6.2f);
-        AddScaledPad("Blue Shrink Pad 3", TestAWheelColor.Blue, 1.45f, 86f, 7.4f);
-        AddScaledPad("Green Growth Pad 4", TestAWheelColor.Green, -0.7f, 100f, 8.2f);
-        AddScaledPad("Yellow Shrink Pad 3", TestAWheelColor.Yellow, 1.25f, 116f, 7f);
-        AddScaledPad("Green Growth Pad 5", TestAWheelColor.Green, 0f, 130f, 6.8f);
-        AddScaledPad("Blue Shrink Pad 4", TestAWheelColor.Blue, 1.4f, 148f, 6.5f);
-        AddScaledPad("Yellow Shrink Pad 4", TestAWheelColor.Yellow, -0.9f, 163f, 7f);
-        AddScaledPad("Green Growth Pad 6", TestAWheelColor.Green, -1.2f, 178f, 6.8f);
-        AddScaledPad("Blue Shrink Pad 5", TestAWheelColor.Blue, 1.35f, 193f, 6.4f);
-        AddScaledPad("Yellow Shrink Pad 5", TestAWheelColor.Yellow, 0.5f, 208f, 7.2f);
-        AddScaledPad("Green Growth Pad 7", TestAWheelColor.Green, -0.6f, 223f, 6.6f);
-        AddScaledPad("Blue Shrink Pad 6", TestAWheelColor.Blue, 1.5f, 238f, 6.2f);
-        AddScaledPad("Yellow Shrink Pad 6", TestAWheelColor.Yellow, -0.4f, 253f, 6.8f);
-        AddScaledPad("Green Growth Pad 8", TestAWheelColor.Green, -1.3f, 268f, 6.5f);
-        AddScaledPad("Blue Shrink Pad 7", TestAWheelColor.Blue, 1.25f, 283f, 6.6f);
-        AddScaledPad("Yellow Shrink Pad 7", TestAWheelColor.Yellow, 0.8f, 298f, 7f);
-        AddScaledPad("Green Growth Pad 9", TestAWheelColor.Green, -0.5f, 313f, 6.7f);
-        AddScaledPad("Blue Shrink Pad 8", TestAWheelColor.Blue, 1.45f, 328f, 6.4f);
-        AddScaledPad("Yellow Shrink Pad 8", TestAWheelColor.Yellow, -1.1f, 343f, 6.9f);
-        AddScaledPad("Green Growth Pad 10", TestAWheelColor.Green, 0.35f, 358f, 6.3f);
+        GameObject wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Register(wall);
+        wall.name = name;
+        wall.transform.SetParent(parent, false);
+        wall.transform.localPosition = localPosition;
+        wall.transform.localScale = localScale;
+        SetMaterial(wall, wallMaterial);
     }
 
-    private void AddScaledPad(string name, TestAWheelColor padColor, float x, float z, float length)
+    private void BuildColorPadsForSegment(Transform parent, bool registerGameplay)
     {
-        AddPad(name, padColor, x, z * TrackContentZScale, length);
+        AddScaledPad(parent, registerGameplay, "Green Growth Pad 1", TestAWheelColor.Green, -1.45f, 17f, 5.7f);
+        AddScaledPad(parent, registerGameplay, "Blue Shrink Pad 1", TestAWheelColor.Blue, 1.45f, 17f, 5.7f);
+        AddScaledPad(parent, registerGameplay, "Yellow Shrink Pad 1", TestAWheelColor.Yellow, 0.35f, 31f, 7f);
+        AddScaledPad(parent, registerGameplay, "Green Growth Pad 2", TestAWheelColor.Green, -1.35f, 43f, 6.4f);
+        AddScaledPad(parent, registerGameplay, "Blue Shrink Pad 2", TestAWheelColor.Blue, 1.35f, 43f, 6.4f);
+        AddScaledPad(parent, registerGameplay, "Green Growth Pad 3", TestAWheelColor.Green, 0.25f, 58f, 8.5f);
+        AddScaledPad(parent, registerGameplay, "Yellow Shrink Pad 2", TestAWheelColor.Yellow, -1.55f, 73f, 6.2f);
+        AddScaledPad(parent, registerGameplay, "Blue Shrink Pad 3", TestAWheelColor.Blue, 1.45f, 86f, 7.4f);
+        AddScaledPad(parent, registerGameplay, "Green Growth Pad 4", TestAWheelColor.Green, -0.7f, 100f, 8.2f);
+        AddScaledPad(parent, registerGameplay, "Yellow Shrink Pad 3", TestAWheelColor.Yellow, 1.25f, 116f, 7f);
+        AddScaledPad(parent, registerGameplay, "Green Growth Pad 5", TestAWheelColor.Green, 0f, 130f, 6.8f);
+        AddScaledPad(parent, registerGameplay, "Blue Shrink Pad 4", TestAWheelColor.Blue, 1.4f, 148f, 6.5f);
+        AddScaledPad(parent, registerGameplay, "Yellow Shrink Pad 4", TestAWheelColor.Yellow, -0.9f, 163f, 7f);
+        AddScaledPad(parent, registerGameplay, "Green Growth Pad 6", TestAWheelColor.Green, -1.2f, 178f, 6.8f);
+        AddScaledPad(parent, registerGameplay, "Blue Shrink Pad 5", TestAWheelColor.Blue, 1.35f, 193f, 6.4f);
+        AddScaledPad(parent, registerGameplay, "Yellow Shrink Pad 5", TestAWheelColor.Yellow, 0.5f, 208f, 7.2f);
+        AddScaledPad(parent, registerGameplay, "Green Growth Pad 7", TestAWheelColor.Green, -0.6f, 223f, 6.6f);
+        AddScaledPad(parent, registerGameplay, "Blue Shrink Pad 6", TestAWheelColor.Blue, 1.5f, 238f, 6.2f);
+        AddScaledPad(parent, registerGameplay, "Yellow Shrink Pad 6", TestAWheelColor.Yellow, -0.4f, 253f, 6.8f);
+        AddScaledPad(parent, registerGameplay, "Green Growth Pad 8", TestAWheelColor.Green, -1.3f, 268f, 6.5f);
+        AddScaledPad(parent, registerGameplay, "Blue Shrink Pad 7", TestAWheelColor.Blue, 1.25f, 283f, 6.6f);
+        AddScaledPad(parent, registerGameplay, "Yellow Shrink Pad 7", TestAWheelColor.Yellow, 0.8f, 298f, 7f);
+        AddScaledPad(parent, registerGameplay, "Green Growth Pad 9", TestAWheelColor.Green, -0.5f, 313f, 6.7f);
+        AddScaledPad(parent, registerGameplay, "Blue Shrink Pad 8", TestAWheelColor.Blue, 1.45f, 328f, 6.4f);
+        AddScaledPad(parent, registerGameplay, "Yellow Shrink Pad 8", TestAWheelColor.Yellow, -1.1f, 343f, 6.9f);
+        AddScaledPad(parent, registerGameplay, "Green Growth Pad 10", TestAWheelColor.Green, 0.35f, 358f, 6.3f);
     }
 
-    private void AddPad(string name, TestAWheelColor padColor, float x, float z, float length)
+    private void AddScaledPad(Transform parent, bool registerGameplay, string name, TestAWheelColor padColor, float x, float z, float length)
     {
+        AddPad(parent, registerGameplay, name, padColor, x, z * TrackContentZScale, length);
+    }
+
+    private void AddPad(Transform parent, bool registerGameplay, string name, TestAWheelColor padColor, float x, float z, float length)
+    {
+        float localCenterZ = z - TrackLoopStartZ;
         GameObject pad = GameObject.CreatePrimitive(PrimitiveType.Cube);
         Register(pad);
         pad.name = name;
-        pad.transform.position = new Vector3(x, 0.06f, z);
+        pad.transform.SetParent(parent, false);
+        pad.transform.localPosition = new Vector3(x, 0.06f, localCenterZ);
         pad.transform.localScale = new Vector3(1.15f, 0.12f, length);
         SetMaterial(pad, GetMaterial(padColor));
-        colorPads.Add(new ColorPad(padColor, x, z - length * 0.5f, z + length * 0.5f, 0.78f, pad));
+
+        if (registerGameplay)
+        {
+            colorPads.Add(new ColorPad(padColor, x, z - length * 0.5f, z + length * 0.5f, 0.78f, pad));
+        }
     }
 
     private void BuildColorBaffles()
@@ -391,7 +410,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
 
         scoreText = CreateText(canvasObject.transform, "Score Text", "Score\n0", new Vector2(28f, -28f), TextAnchor.UpperLeft, 32, whiteMaterial.color);
         heightText = CreateText(canvasObject.transform, "Height Text", "Height 0.72", new Vector2(-28f, -28f), TextAnchor.UpperRight, 24, whiteMaterial.color);
-        messageText = CreateText(canvasObject.transform, "Message Text", "拖动左右移动；穿过彩色挡板会改变轮子颜色；同色长条会升高，R 重开", new Vector2(0f, 72f), TextAnchor.LowerCenter, 20, whiteMaterial.color);
+        messageText = CreateText(canvasObject.transform, "Message Text", "拖动左右移动；跑道循环无尽，速度会越来越快，R 重开", new Vector2(0f, 72f), TextAnchor.LowerCenter, 20, whiteMaterial.color);
 
         GameObject sliderObject = new GameObject("Level Progress");
         Register(sliderObject);
@@ -494,19 +513,24 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
 
     private float GetCurrentForwardSpeed()
     {
-        float progress = Mathf.Clamp01(zPosition / FinishZ);
-        return Mathf.Lerp(forwardSpeed, maxForwardSpeed, progress);
+        float ramp = 1f - Mathf.Exp(-totalDistanceTraveled / Mathf.Max(speedRampDistance, 1f));
+        float lapBoost = lapCount * 0.06f;
+        return Mathf.Lerp(forwardSpeed, maxForwardSpeed, Mathf.Clamp01(ramp + lapBoost));
     }
 
     private void MoveRunner()
     {
         float speed = GetCurrentForwardSpeed();
-        zPosition += speed * Time.deltaTime;
+        float delta = speed * Time.deltaTime;
+        zPosition += delta;
+        totalDistanceTraveled += delta;
+        UpdateLapProgress();
+        UpdateLoopSegments();
         currentRadius = Mathf.Lerp(currentRadius, targetRadius, Time.deltaTime * 10f);
         runnerRoot.position = new Vector3(xPosition, 0f, zPosition);
         UpdateWheelScale(false);
 
-        wheelRollAngle += speed * Time.deltaTime / Mathf.Max(currentRadius, 0.05f) * Mathf.Rad2Deg;
+        wheelRollAngle += delta / Mathf.Max(currentRadius, 0.05f) * Mathf.Rad2Deg;
         wheel.localRotation = Quaternion.Euler(wheelRollAngle, 0f, 90f);
 
         if (characterRoot != null)
@@ -514,6 +538,86 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
             float bob = Mathf.Sin(Time.time * 11f) * 0.035f;
             characterRoot.localPosition = new Vector3(0f, currentRadius * 2f + 0.04f + bob, -0.06f);
         }
+    }
+
+    private float GetLoopZ(float worldZ)
+    {
+        return TrackLoopStartZ + Mathf.Repeat(worldZ - TrackLoopStartZ, TrackLoopLength);
+    }
+
+    private void UpdateLapProgress()
+    {
+        int newLap = Mathf.FloorToInt((zPosition - TrackLoopStartZ) / TrackLoopLength);
+        if (newLap <= lapCount)
+        {
+            return;
+        }
+
+        lapCount = newLap;
+        ResetLoopInteractables();
+        ShowLapMessage();
+    }
+
+    private float GetFrontSegmentStart()
+    {
+        float front = loopSegmentStarts[0];
+        for (int i = 1; i < LoopSegmentCount; i++)
+        {
+            if (loopSegmentStarts[i] > front)
+            {
+                front = loopSegmentStarts[i];
+            }
+        }
+
+        return front;
+    }
+
+    private void UpdateLoopSegments()
+    {
+        float recycleZ = zPosition - TrackLoopLength - LoopSegmentRecycleMargin;
+        for (int i = 0; i < LoopSegmentCount; i++)
+        {
+            if (loopSegmentStarts[i] + TrackLoopLength >= recycleZ || loopSegmentRoots[i] == null)
+            {
+                continue;
+            }
+
+            float newStart = GetFrontSegmentStart() + TrackLoopLength;
+            loopSegmentStarts[i] = newStart;
+            loopSegmentRoots[i].position = new Vector3(0f, 0f, newStart);
+        }
+    }
+
+    private void ResetLoopInteractables()
+    {
+        for (int i = 0; i < colorPads.Count; i++)
+        {
+            ColorPad pad = colorPads[i];
+            pad.Consumed = false;
+            colorPads[i] = pad;
+            if (pad.Visual != null)
+            {
+                pad.Visual.transform.localScale = new Vector3(pad.Visual.transform.localScale.x, 0.12f, pad.Visual.transform.localScale.z);
+            }
+        }
+
+        for (int i = 0; i < colorBaffles.Count; i++)
+        {
+            ColorBaffle baffle = colorBaffles[i];
+            baffle.Consumed = false;
+            colorBaffles[i] = baffle;
+        }
+    }
+
+    private void ShowLapMessage()
+    {
+        if (messageText == null)
+        {
+            return;
+        }
+
+        messageText.text = "第 " + (lapCount + 1) + " 圈";
+        messageText.color = whiteMaterial.color;
     }
 
     private void UpdateWheelScale(bool immediate)
@@ -537,10 +641,11 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
 
     private void CheckPads()
     {
+        float loopZ = GetLoopZ(zPosition);
         for (int i = 0; i < colorPads.Count; i++)
         {
             ColorPad pad = colorPads[i];
-            if (pad.Consumed || zPosition < pad.StartZ || zPosition > pad.EndZ || Mathf.Abs(xPosition - pad.X) > pad.HalfWidth + PadHitExtraHalfWidth)
+            if (pad.Consumed || loopZ < pad.StartZ || loopZ > pad.EndZ || Mathf.Abs(xPosition - pad.X) > pad.HalfWidth + PadHitExtraHalfWidth)
             {
                 continue;
             }
@@ -594,7 +699,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         for (int i = 0; i < colorBaffles.Count; i++)
         {
             ColorBaffle baffle = colorBaffles[i];
-            if (baffle.Consumed || Mathf.Abs(zPosition - baffle.Z) > baffle.HalfThickness)
+            if (baffle.Consumed || Mathf.Abs(GetLoopZ(zPosition) - baffle.Z) > baffle.HalfThickness)
             {
                 continue;
             }
@@ -629,27 +734,11 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         messageText.color = GetColor(baffleColor);
     }
 
-    private void CheckFinish()
-    {
-        if (zPosition < FinishZ)
-        {
-            return;
-        }
-
-        isFinished = true;
-        messageText.text = "完成！得分 " + score + "，按 R 重新开始";
-        messageText.color = Color.white;
-        if (finishBanner != null)
-        {
-            finishBanner.localScale = Vector3.one * 1.12f;
-        }
-    }
-
     private void UpdateUi()
     {
         if (scoreText != null)
         {
-            scoreText.text = "Score\n" + score;
+            scoreText.text = "Score\n" + score + "\nLap " + (lapCount + 1);
         }
 
         if (heightText != null)
@@ -659,7 +748,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
 
         if (progressSlider != null)
         {
-            progressSlider.value = Mathf.Clamp01(zPosition / FinishZ);
+            progressSlider.value = Mathf.Clamp01((GetLoopZ(zPosition) - TrackLoopStartZ) / TrackLoopLength);
             if (progressSlider.fillRect != null)
             {
                 Image fillImage = progressSlider.fillRect.GetComponent<Image>();
