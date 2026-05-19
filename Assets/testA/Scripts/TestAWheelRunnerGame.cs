@@ -16,8 +16,8 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     [Header("Gameplay")]
     [SerializeField] private TestAWheelColor initialWheelColor = TestAWheelColor.Green;
     [SerializeField] private float forwardSpeed = 8.5f;
-    [SerializeField] private float maxForwardSpeed = 22f;
-    [SerializeField] private float speedRampDistance = 500f;
+    [SerializeField] private float maxForwardSpeed = 44f;
+    [SerializeField] private float speedRampDistance = 320f;
     [SerializeField] private float horizontalSpeed = 9f;
     [SerializeField] private float dragSensitivity = 0.018f;
     [SerializeField] private float initialWheelRadius = 0.72f;
@@ -46,6 +46,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     private const float TrackContentZScale = 2f;
     private const float TrackStripeSpacing = 9f;
     private const float PadHitExtraHalfWidth = 0.38f;
+    private const float BaffleSpacing = 150f;
 
     private readonly List<ColorPad> colorPads = new List<ColorPad>();
     private readonly List<ColorBaffle> colorBaffles = new List<ColorBaffle>();
@@ -164,7 +165,6 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         ClearSpawnedObjects();
         BuildLightingAndCamera();
         BuildLoopSegments();
-        BuildColorBaffles();
         BuildRunner();
         BuildUi();
     }
@@ -231,6 +231,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
 
             BuildTrackSegmentVisuals(segmentRoot.transform);
             BuildColorPadsForSegment(segmentRoot.transform, i == 0);
+            BuildColorBafflesForSegment(segmentRoot.transform, i == 0);
         }
     }
 
@@ -323,21 +324,29 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         }
     }
 
-    private void BuildColorBaffles()
+    private void BuildColorBafflesForSegment(Transform parent, bool registerGameplay)
     {
-        //AddBaffle("Yellow Color Baffle", TestAWheelColor.Yellow, 30f);
-        //AddBaffle("Blue Color Baffle", TestAWheelColor.Blue, 100f);
+        int startOffset = ((int)initialWheelColor + 1) % 3;
+        int colorIndex = 0;
+        for (float z = BaffleSpacing; z < TrackLoopStartZ + TrackLoopLength; z += BaffleSpacing)
+        {
+            TestAWheelColor baffleColor = (TestAWheelColor)((startOffset + colorIndex) % 3);
+            AddBaffle(parent, registerGameplay, baffleColor + " Color Baffle", baffleColor, z);
+            colorIndex++;
+        }
     }
 
-    private void AddBaffle(string name, TestAWheelColor baffleColor, float z)
+    private void AddBaffle(Transform parent, bool registerGameplay, string name, TestAWheelColor baffleColor, float z)
     {
+        float localCenterZ = z - TrackLoopStartZ;
         Material opaqueMaterial = GetMaterial(baffleColor);
         Material gateMaterial = CreateTransparentMaterial("Runtime Baffle " + baffleColor, GetColor(baffleColor));
 
         GameObject gate = GameObject.CreatePrimitive(PrimitiveType.Cube);
         Register(gate);
         gate.name = name;
-        gate.transform.position = new Vector3(0f, 1.85f, z);
+        gate.transform.SetParent(parent, false);
+        gate.transform.localPosition = new Vector3(0f, 1.85f, localCenterZ);
         gate.transform.localScale = new Vector3(TrackWidth - 0.35f, 3.7f, 0.14f);
         SetMaterial(gate, gateMaterial);
         RemoveCollider(gate);
@@ -345,12 +354,16 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         GameObject baseStrip = GameObject.CreatePrimitive(PrimitiveType.Cube);
         Register(baseStrip);
         baseStrip.name = name + " Base";
-        baseStrip.transform.position = new Vector3(0f, 0.12f, z);
+        baseStrip.transform.SetParent(parent, false);
+        baseStrip.transform.localPosition = new Vector3(0f, 0.12f, localCenterZ);
         baseStrip.transform.localScale = new Vector3(TrackWidth - 0.15f, 0.2f, 0.38f);
         SetMaterial(baseStrip, opaqueMaterial);
         RemoveCollider(baseStrip);
 
-        colorBaffles.Add(new ColorBaffle(baffleColor, z, 0.42f, gate));
+        if (registerGameplay)
+        {
+            colorBaffles.Add(new ColorBaffle(baffleColor, z, 0.42f, gate));
+        }
     }
 
     private void BuildRunner()
@@ -515,7 +528,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     private float GetCurrentForwardSpeed()
     {
         float ramp = 1f - Mathf.Exp(-totalDistanceTraveled / Mathf.Max(speedRampDistance, 1f));
-        float lapBoost = lapCount * 0.06f;
+        float lapBoost = lapCount * 0.05f;
         return Mathf.Lerp(forwardSpeed, maxForwardSpeed, Mathf.Clamp01(ramp + lapBoost));
     }
 
@@ -607,6 +620,10 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
             ColorBaffle baffle = colorBaffles[i];
             baffle.Consumed = false;
             colorBaffles[i] = baffle;
+            if (baffle.Visual != null)
+            {
+                baffle.Visual.transform.localScale = new Vector3(TrackWidth - 0.35f, 3.7f, 0.14f);
+            }
         }
     }
 
