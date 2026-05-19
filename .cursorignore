@@ -1,0 +1,64 @@
+# Unity generated
+/Library/
+/Temp/
+/Logs/
+/obj/
+/build/
+/UserSettings/
+/MemoryCaptures/
+
+# Build outputs / packaged data
+/Bundles/
+/PreDownload/
+/PackResRoot/
+/Sandbox/
+/10000/
+/DataAndroid/
+/DataIOS/
+/DataPC/
+/DataMAC/
+/WorldExport_Flame/
+/HoudiniTemp/
+
+# IDE / tool metadata
+/.idea/
+/.vscode/
+*.user
+*.userprefs
+*.pidb
+*.cache
+*.blob
+*.prof
+*.validationcache
+*.wsettings
+*.backup
+
+# Large runtime assets
+/Assets/StreamingAssets/config_files/
+/Assets/StreamingAssets/BuildinFiles/
+/Assets/StreamingAssets/Audio/
+/Assets/YooAssets/
+/Assets/Wwise/
+/Assets/SceneDependencyCache/
+/Assets/ConsolePro/
+
+# Tool outputs / local generators
+/confLocalTool/output/
+/confLocalTool/config/cache/
+/confLocalTool/client_proto/
+/node_js_tools/
+/Tools/PackageManager/
+/Tools/BuildTools/
+/HybridCLRData/
+
+# Local data / misc generated files
+/chat_history/
+/log/
+/branchName.txt
+/UIAnalyseCache.json
+/TaskGetBuildMapNameConfig.txt
+/heu_session.txt
+
+# Config/cache files already low-value for indexing
+conf/data_dat/sheet_cfg.dat
+conf/data_dat/single_cfg.dat

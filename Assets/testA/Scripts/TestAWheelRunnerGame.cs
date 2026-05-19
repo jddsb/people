@@ -1,0 +1,641 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+public enum TestAWheelColor
+{
+    Green,
+    Blue,
+    Yellow
+}
+
+public sealed class TestAWheelRunnerGame : MonoBehaviour
+{
+    [Header("Gameplay")]
+    [SerializeField] private TestAWheelColor initialWheelColor = TestAWheelColor.Green;
+    [SerializeField] private float forwardSpeed = 8.5f;
+    [SerializeField] private float horizontalSpeed = 9f;
+    [SerializeField] private float dragSensitivity = 0.018f;
+    [SerializeField] private float initialWheelRadius = 0.72f;
+    [SerializeField] private float radiusStep = 0.36f;
+    [SerializeField] private float minWheelRadius = 0.28f;
+    [SerializeField] private float maxWheelRadius = 2.35f;
+
+    [Header("Art Materials")]
+    [SerializeField] private Material greenMaterial;
+    [SerializeField] private Material blueMaterial;
+    [SerializeField] private Material yellowMaterial;
+    [SerializeField] private Material trackMaterial;
+    [SerializeField] private Material wallMaterial;
+    [SerializeField] private Material skinMaterial;
+    [SerializeField] private Material shirtMaterial;
+    [SerializeField] private Material shortsMaterial;
+    [SerializeField] private Material hairMaterial;
+    [SerializeField] private Material whiteMaterial;
+    [SerializeField] private Material darkMaterial;
+
+    private const float TrackWidth = 7.2f;
+    private const float TrackLength = 150f;
+    private const float FinishZ = 142f;
+
+    private readonly List<ColorPad> colorPads = new List<ColorPad>();
+    private readonly List<GameObject> spawnedObjects = new List<GameObject>();
+
+    private Transform runnerRoot;
+    private Transform wheel;
+    private Transform characterRoot;
+    private Transform finishBanner;
+    private Camera mainCamera;
+    private Text scoreText;
+    private Text heightText;
+    private Text messageText;
+    private Slider progressSlider;
+
+    private TestAWheelColor wheelColor;
+    private float currentRadius;
+    private float targetRadius;
+    private float xPosition;
+    private float zPosition = 2f;
+    private float lastPointerX;
+    private int score;
+    private bool isDragging;
+    private bool isFinished;
+
+    private void Awake()
+    {
+        wheelColor = initialWheelColor;
+        currentRadius = initialWheelRadius;
+        targetRadius = initialWheelRadius;
+        BuildFallbackMaterials();
+        BuildWorld();
+        UpdateWheelScale(true);
+        UpdateUi();
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            return;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            SetWheelColor(TestAWheelColor.Green);
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            SetWheelColor(TestAWheelColor.Blue);
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            SetWheelColor(TestAWheelColor.Yellow);
+        }
+
+        if (isFinished)
+        {
+            return;
+        }
+
+        HandleInput();
+        MoveRunner();
+        CheckPads();
+        CheckFinish();
+        UpdateUi();
+    }
+
+    private void LateUpdate()
+    {
+        if (mainCamera == null || runnerRoot == null)
+        {
+            return;
+        }
+
+        Vector3 targetPosition = runnerRoot.position + new Vector3(0f, 5.2f, -8.2f);
+        Vector3 lookTarget = runnerRoot.position + new Vector3(0f, currentRadius * 1.7f + 0.9f, 2.6f);
+        Quaternion targetRotation = Quaternion.LookRotation(lookTarget - targetPosition, Vector3.up);
+        mainCamera.transform.position = Vector3.Lerp(mainCamera.transform.position, targetPosition, Time.deltaTime * 6f);
+        mainCamera.transform.rotation = Quaternion.Lerp(mainCamera.transform.rotation, targetRotation, Time.deltaTime * 7f);
+    }
+
+    private void BuildFallbackMaterials()
+    {
+        greenMaterial = greenMaterial != null ? greenMaterial : CreateMaterial("Runtime Green", new Color(0.02f, 0.78f, 0.11f));
+        blueMaterial = blueMaterial != null ? blueMaterial : CreateMaterial("Runtime Blue", new Color(0.02f, 0.44f, 1f));
+        yellowMaterial = yellowMaterial != null ? yellowMaterial : CreateMaterial("Runtime Yellow", new Color(1f, 0.78f, 0.02f));
+        trackMaterial = trackMaterial != null ? trackMaterial : CreateMaterial("Runtime Track", new Color(0.87f, 0.78f, 0.93f));
+        wallMaterial = wallMaterial != null ? wallMaterial : CreateMaterial("Runtime Wall", new Color(0.42f, 0.31f, 0.68f));
+        skinMaterial = skinMaterial != null ? skinMaterial : CreateMaterial("Runtime Skin", new Color(0.94f, 0.56f, 0.32f));
+        shirtMaterial = shirtMaterial != null ? shirtMaterial : CreateMaterial("Runtime Shirt", new Color(0.05f, 0.33f, 0.45f));
+        shortsMaterial = shortsMaterial != null ? shortsMaterial : CreateMaterial("Runtime Shorts", new Color(0.82f, 0.2f, 0.08f));
+        hairMaterial = hairMaterial != null ? hairMaterial : CreateMaterial("Runtime Hair", new Color(0.04f, 0.035f, 0.03f));
+        whiteMaterial = whiteMaterial != null ? whiteMaterial : CreateMaterial("Runtime White", Color.white);
+        darkMaterial = darkMaterial != null ? darkMaterial : CreateMaterial("Runtime Dark", new Color(0.07f, 0.06f, 0.1f));
+    }
+
+    private void BuildWorld()
+    {
+        ClearSpawnedObjects();
+        BuildLightingAndCamera();
+        BuildTrack();
+        BuildColorPads();
+        BuildRunner();
+        BuildUi();
+    }
+
+    private void ClearSpawnedObjects()
+    {
+        for (int i = spawnedObjects.Count - 1; i >= 0; i--)
+        {
+            if (spawnedObjects[i] != null)
+            {
+                Destroy(spawnedObjects[i]);
+            }
+        }
+
+        spawnedObjects.Clear();
+        colorPads.Clear();
+    }
+
+    private void BuildLightingAndCamera()
+    {
+        Camera[] existingCameras = FindObjectsOfType<Camera>();
+        for (int i = 0; i < existingCameras.Length; i++)
+        {
+            Destroy(existingCameras[i].gameObject);
+        }
+
+        Light[] existingLights = FindObjectsOfType<Light>();
+        for (int i = 0; i < existingLights.Length; i++)
+        {
+            Destroy(existingLights[i].gameObject);
+        }
+
+        GameObject lightObject = new GameObject("Sun Light");
+        Register(lightObject);
+        Light light = lightObject.AddComponent<Light>();
+        light.type = LightType.Directional;
+        light.intensity = 1.25f;
+        light.shadows = LightShadows.Soft;
+        lightObject.transform.rotation = Quaternion.Euler(48f, -35f, 12f);
+
+        GameObject cameraObject = new GameObject("Main Camera");
+        Register(cameraObject);
+        mainCamera = cameraObject.AddComponent<Camera>();
+        mainCamera.tag = "MainCamera";
+        mainCamera.fieldOfView = 58f;
+        mainCamera.backgroundColor = new Color(0.18f, 0.14f, 0.28f);
+        mainCamera.clearFlags = CameraClearFlags.SolidColor;
+        cameraObject.transform.position = new Vector3(0f, 5.2f, -8.2f);
+        cameraObject.transform.rotation = Quaternion.Euler(35f, 0f, 0f);
+    }
+
+    private void BuildTrack()
+    {
+        GameObject track = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Register(track);
+        track.name = "Long Pastel Track";
+        track.transform.position = new Vector3(0f, -0.05f, TrackLength * 0.5f);
+        track.transform.localScale = new Vector3(TrackWidth, 0.1f, TrackLength);
+        SetMaterial(track, trackMaterial);
+
+        for (int i = 0; i < 16; i++)
+        {
+            GameObject stripe = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            Register(stripe);
+            stripe.name = "Track Soft Stripe";
+            stripe.transform.position = new Vector3(0f, 0.01f, 5f + i * 9f);
+            stripe.transform.localScale = new Vector3(TrackWidth, 0.025f, 4.4f);
+            SetMaterial(stripe, i % 2 == 0 ? trackMaterial : CreateMaterial("Runtime Track Stripe", new Color(0.91f, 0.84f, 0.96f)));
+        }
+
+        CreateWall("Left Purple Wall", new Vector3(-TrackWidth * 0.5f - 0.45f, 1.4f, TrackLength * 0.5f), new Vector3(0.55f, 2.8f, TrackLength), wallMaterial);
+        CreateWall("Right Purple Wall", new Vector3(TrackWidth * 0.5f + 0.45f, 1.4f, TrackLength * 0.5f), new Vector3(0.55f, 2.8f, TrackLength), wallMaterial);
+
+        GameObject finish = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Register(finish);
+        finish.name = "Yellow Finish Platform";
+        finish.transform.position = new Vector3(0f, 0.12f, FinishZ);
+        finish.transform.localScale = new Vector3(TrackWidth, 0.24f, 8f);
+        SetMaterial(finish, yellowMaterial);
+
+        GameObject banner = new GameObject("Finish Banner");
+        Register(banner);
+        finishBanner = banner.transform;
+        finishBanner.position = new Vector3(0f, 3.8f, FinishZ + 2f);
+        CreatePrimitiveChild(finishBanner, "Finish Bar", PrimitiveType.Cube, Vector3.zero, new Vector3(5.8f, 0.18f, 0.18f), yellowMaterial);
+        CreatePrimitiveChild(finishBanner, "Left Pole", PrimitiveType.Cube, new Vector3(-2.9f, -1.8f, 0f), new Vector3(0.16f, 3.6f, 0.16f), darkMaterial);
+        CreatePrimitiveChild(finishBanner, "Right Pole", PrimitiveType.Cube, new Vector3(2.9f, -1.8f, 0f), new Vector3(0.16f, 3.6f, 0.16f), darkMaterial);
+    }
+
+    private void BuildColorPads()
+    {
+        AddPad("Green Growth Pad 1", TestAWheelColor.Green, -1.45f, 17f, 5.7f);
+        AddPad("Blue Shrink Pad 1", TestAWheelColor.Blue, 1.45f, 17f, 5.7f);
+        AddPad("Yellow Shrink Pad 1", TestAWheelColor.Yellow, 0.35f, 31f, 7f);
+        AddPad("Green Growth Pad 2", TestAWheelColor.Green, -1.35f, 43f, 6.4f);
+        AddPad("Blue Shrink Pad 2", TestAWheelColor.Blue, 1.35f, 43f, 6.4f);
+        AddPad("Green Growth Pad 3", TestAWheelColor.Green, 0.25f, 58f, 8.5f);
+        AddPad("Yellow Shrink Pad 2", TestAWheelColor.Yellow, -1.55f, 73f, 6.2f);
+        AddPad("Blue Shrink Pad 3", TestAWheelColor.Blue, 1.45f, 86f, 7.4f);
+        AddPad("Green Growth Pad 4", TestAWheelColor.Green, -0.7f, 100f, 8.2f);
+        AddPad("Yellow Shrink Pad 3", TestAWheelColor.Yellow, 1.25f, 116f, 7f);
+        AddPad("Green Growth Pad 5", TestAWheelColor.Green, 0f, 130f, 6.8f);
+    }
+
+    private void AddPad(string name, TestAWheelColor padColor, float x, float z, float length)
+    {
+        GameObject pad = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Register(pad);
+        pad.name = name;
+        pad.transform.position = new Vector3(x, 0.06f, z);
+        pad.transform.localScale = new Vector3(1.15f, 0.12f, length);
+        SetMaterial(pad, GetMaterial(padColor));
+        colorPads.Add(new ColorPad(padColor, x, z - length * 0.5f, z + length * 0.5f, 0.78f, pad));
+    }
+
+    private void BuildRunner()
+    {
+        GameObject root = new GameObject("Wheel Runner");
+        Register(root);
+        runnerRoot = root.transform;
+        runnerRoot.position = new Vector3(xPosition, 0f, zPosition);
+
+        GameObject wheelObject = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        Register(wheelObject);
+        wheelObject.name = "Rolling Color Wheel";
+        wheelObject.transform.SetParent(runnerRoot, false);
+        wheelObject.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+        wheel = wheelObject.transform;
+        SetMaterial(wheelObject, GetMaterial(wheelColor));
+
+        GameObject character = new GameObject("Runner Character");
+        Register(character);
+        character.transform.SetParent(runnerRoot, false);
+        characterRoot = character.transform;
+        BuildCharacter(characterRoot);
+    }
+
+    private void BuildCharacter(Transform parent)
+    {
+        CreatePrimitiveChild(parent, "Body", PrimitiveType.Capsule, new Vector3(0f, 1.15f, -0.1f), new Vector3(0.42f, 0.58f, 0.42f), shirtMaterial);
+        CreatePrimitiveChild(parent, "Head", PrimitiveType.Sphere, new Vector3(0f, 1.93f, -0.1f), new Vector3(0.42f, 0.42f, 0.42f), skinMaterial);
+        CreatePrimitiveChild(parent, "Hair", PrimitiveType.Sphere, new Vector3(0f, 2.08f, -0.13f), new Vector3(0.43f, 0.24f, 0.43f), hairMaterial);
+        CreatePrimitiveChild(parent, "Shorts", PrimitiveType.Cube, new Vector3(0f, 0.68f, -0.1f), new Vector3(0.48f, 0.32f, 0.36f), shortsMaterial);
+        CreateLimb(parent, "Left Arm", new Vector3(-0.37f, 1.16f, -0.1f), new Vector3(0.14f, 0.56f, 0.14f), Quaternion.Euler(0f, 0f, -14f), skinMaterial);
+        CreateLimb(parent, "Right Arm", new Vector3(0.37f, 1.16f, -0.1f), new Vector3(0.14f, 0.56f, 0.14f), Quaternion.Euler(0f, 0f, 14f), skinMaterial);
+        CreateLimb(parent, "Left Leg", new Vector3(-0.15f, 0.23f, -0.08f), new Vector3(0.15f, 0.52f, 0.15f), Quaternion.Euler(8f, 0f, 4f), skinMaterial);
+        CreateLimb(parent, "Right Leg", new Vector3(0.15f, 0.23f, -0.08f), new Vector3(0.15f, 0.52f, 0.15f), Quaternion.Euler(-8f, 0f, -4f), skinMaterial);
+        CreatePrimitiveChild(parent, "Left Shoe", PrimitiveType.Cube, new Vector3(-0.15f, -0.06f, -0.02f), new Vector3(0.2f, 0.1f, 0.36f), whiteMaterial);
+        CreatePrimitiveChild(parent, "Right Shoe", PrimitiveType.Cube, new Vector3(0.15f, -0.06f, -0.02f), new Vector3(0.2f, 0.1f, 0.36f), whiteMaterial);
+    }
+
+    private void CreateLimb(Transform parent, string name, Vector3 localPosition, Vector3 localScale, Quaternion localRotation, Material material)
+    {
+        GameObject limb = CreatePrimitiveChild(parent, name, PrimitiveType.Capsule, localPosition, localScale, material);
+        limb.transform.localRotation = localRotation;
+    }
+
+    private void BuildUi()
+    {
+        GameObject eventSystem = new GameObject("EventSystem");
+        Register(eventSystem);
+        eventSystem.AddComponent<EventSystem>();
+        eventSystem.AddComponent<StandaloneInputModule>();
+
+        GameObject canvasObject = new GameObject("Game UI");
+        Register(canvasObject);
+        Canvas canvas = canvasObject.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvasObject.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        canvasObject.AddComponent<GraphicRaycaster>();
+
+        scoreText = CreateText(canvasObject.transform, "Score Text", "Score\n0", new Vector2(28f, -28f), TextAnchor.UpperLeft, 32, whiteMaterial.color);
+        heightText = CreateText(canvasObject.transform, "Height Text", "Height 0.72", new Vector2(-28f, -28f), TextAnchor.UpperRight, 24, whiteMaterial.color);
+        messageText = CreateText(canvasObject.transform, "Message Text", "拖动左右移动，绿色轮子压绿色长条会升高；按 1/2/3 可切换颜色，R 重开", new Vector2(0f, 72f), TextAnchor.LowerCenter, 20, whiteMaterial.color);
+
+        GameObject sliderObject = new GameObject("Level Progress");
+        Register(sliderObject);
+        sliderObject.transform.SetParent(canvasObject.transform, false);
+        RectTransform sliderRect = sliderObject.AddComponent<RectTransform>();
+        sliderRect.anchorMin = new Vector2(0.5f, 1f);
+        sliderRect.anchorMax = new Vector2(0.5f, 1f);
+        sliderRect.pivot = new Vector2(0.5f, 1f);
+        sliderRect.anchoredPosition = new Vector2(0f, -30f);
+        sliderRect.sizeDelta = new Vector2(320f, 28f);
+        progressSlider = sliderObject.AddComponent<Slider>();
+        progressSlider.minValue = 0f;
+        progressSlider.maxValue = 1f;
+        progressSlider.interactable = false;
+
+        GameObject background = CreateUiImage(sliderObject.transform, "Background", new Color(1f, 1f, 1f, 0.9f));
+        RectTransform backgroundRect = background.GetComponent<RectTransform>();
+        backgroundRect.anchorMin = Vector2.zero;
+        backgroundRect.anchorMax = Vector2.one;
+        backgroundRect.offsetMin = Vector2.zero;
+        backgroundRect.offsetMax = Vector2.zero;
+
+        GameObject fillArea = new GameObject("Fill Area");
+        Register(fillArea);
+        fillArea.transform.SetParent(sliderObject.transform, false);
+        RectTransform fillAreaRect = fillArea.AddComponent<RectTransform>();
+        fillAreaRect.anchorMin = new Vector2(0f, 0f);
+        fillAreaRect.anchorMax = new Vector2(1f, 1f);
+        fillAreaRect.offsetMin = new Vector2(4f, 4f);
+        fillAreaRect.offsetMax = new Vector2(-4f, -4f);
+
+        GameObject fill = CreateUiImage(fillArea.transform, "Fill", GetColor(wheelColor));
+        progressSlider.fillRect = fill.GetComponent<RectTransform>();
+        progressSlider.targetGraphic = background.GetComponent<Image>();
+    }
+
+    private Text CreateText(Transform parent, string name, string text, Vector2 anchoredPosition, TextAnchor alignment, int fontSize, Color color)
+    {
+        GameObject textObject = new GameObject(name);
+        Register(textObject);
+        textObject.transform.SetParent(parent, false);
+        Text uiText = textObject.AddComponent<Text>();
+        uiText.text = text;
+        uiText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        uiText.fontSize = fontSize;
+        uiText.fontStyle = FontStyle.Bold;
+        uiText.alignment = alignment;
+        uiText.color = color;
+        uiText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        uiText.verticalOverflow = VerticalWrapMode.Overflow;
+        RectTransform rectTransform = textObject.GetComponent<RectTransform>();
+        float anchorX = alignment == TextAnchor.UpperRight ? 1f : alignment == TextAnchor.LowerCenter ? 0.5f : 0f;
+        float anchorY = alignment == TextAnchor.LowerCenter ? 0f : 1f;
+        rectTransform.anchorMin = new Vector2(anchorX, anchorY);
+        rectTransform.anchorMax = rectTransform.anchorMin;
+        rectTransform.pivot = new Vector2(anchorX, anchorY);
+        rectTransform.anchoredPosition = anchoredPosition;
+        rectTransform.sizeDelta = new Vector2(720f, 110f);
+        return uiText;
+    }
+
+    private GameObject CreateUiImage(Transform parent, string name, Color color)
+    {
+        GameObject imageObject = new GameObject(name);
+        Register(imageObject);
+        imageObject.transform.SetParent(parent, false);
+        Image image = imageObject.AddComponent<Image>();
+        image.color = color;
+        RectTransform rectTransform = imageObject.GetComponent<RectTransform>();
+        rectTransform.anchorMin = Vector2.zero;
+        rectTransform.anchorMax = Vector2.one;
+        rectTransform.offsetMin = Vector2.zero;
+        rectTransform.offsetMax = Vector2.zero;
+        return imageObject;
+    }
+
+    private void HandleInput()
+    {
+        float horizontal = Input.GetAxisRaw("Horizontal") * horizontalSpeed * Time.deltaTime;
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            isDragging = true;
+            lastPointerX = Input.mousePosition.x;
+        }
+        else if (Input.GetMouseButtonUp(0))
+        {
+            isDragging = false;
+        }
+
+        if (isDragging)
+        {
+            float delta = Input.mousePosition.x - lastPointerX;
+            horizontal += delta * dragSensitivity;
+            lastPointerX = Input.mousePosition.x;
+        }
+
+        xPosition = Mathf.Clamp(xPosition + horizontal, -TrackWidth * 0.5f + 0.72f, TrackWidth * 0.5f - 0.72f);
+    }
+
+    private void MoveRunner()
+    {
+        zPosition += forwardSpeed * Time.deltaTime;
+        currentRadius = Mathf.Lerp(currentRadius, targetRadius, Time.deltaTime * 10f);
+        runnerRoot.position = new Vector3(xPosition, 0f, zPosition);
+        UpdateWheelScale(false);
+
+        float rollAngle = (forwardSpeed * Time.time / Mathf.Max(currentRadius, 0.05f)) * Mathf.Rad2Deg;
+        wheel.localRotation = Quaternion.Euler(rollAngle, 0f, 90f);
+
+        if (characterRoot != null)
+        {
+            float bob = Mathf.Sin(Time.time * 11f) * 0.035f;
+            characterRoot.localPosition = new Vector3(0f, currentRadius * 2f + 0.04f + bob, -0.06f);
+        }
+    }
+
+    private void UpdateWheelScale(bool immediate)
+    {
+        if (immediate)
+        {
+            currentRadius = targetRadius;
+        }
+
+        if (wheel != null)
+        {
+            wheel.localPosition = new Vector3(0f, currentRadius, 0f);
+            wheel.localScale = new Vector3(currentRadius * 2f, 0.34f, currentRadius * 2f);
+        }
+
+        if (characterRoot != null)
+        {
+            characterRoot.localPosition = new Vector3(0f, currentRadius * 2f + 0.04f, -0.06f);
+        }
+    }
+
+    private void CheckPads()
+    {
+        for (int i = 0; i < colorPads.Count; i++)
+        {
+            ColorPad pad = colorPads[i];
+            if (pad.Consumed || zPosition < pad.StartZ || zPosition > pad.EndZ || Mathf.Abs(xPosition - pad.X) > pad.HalfWidth + currentRadius * 0.42f)
+            {
+                continue;
+            }
+
+            pad.Consumed = true;
+            colorPads[i] = pad;
+            bool isMatch = pad.Color == wheelColor;
+            float delta = isMatch ? radiusStep : -radiusStep;
+            targetRadius = Mathf.Clamp(targetRadius + delta, minWheelRadius, maxWheelRadius);
+            score = Mathf.Max(0, score + (isMatch ? 1 : -1));
+            PulsePad(pad.Visual, isMatch);
+            ShowPadMessage(isMatch, pad.Color);
+        }
+    }
+
+    private void PulsePad(GameObject pad, bool isMatch)
+    {
+        if (pad == null)
+        {
+            return;
+        }
+
+        pad.transform.localScale = new Vector3(pad.transform.localScale.x, isMatch ? 0.22f : 0.05f, pad.transform.localScale.z);
+    }
+
+    private void ShowPadMessage(bool isMatch, TestAWheelColor padColor)
+    {
+        if (messageText == null)
+        {
+            return;
+        }
+
+        messageText.text = isMatch ? "颜色相同：轮子升高！" : "颜色不同：轮子降低！";
+        messageText.color = isMatch ? GetColor(wheelColor) : GetColor(padColor);
+    }
+
+    private void CheckFinish()
+    {
+        if (zPosition < FinishZ)
+        {
+            return;
+        }
+
+        isFinished = true;
+        messageText.text = "完成！得分 " + score + "，按 R 重新开始";
+        messageText.color = Color.white;
+        if (finishBanner != null)
+        {
+            finishBanner.localScale = Vector3.one * 1.12f;
+        }
+    }
+
+    private void UpdateUi()
+    {
+        if (scoreText != null)
+        {
+            scoreText.text = "Score\n" + score;
+        }
+
+        if (heightText != null)
+        {
+            heightText.text = "Color " + wheelColor + "\nHeight " + targetRadius.ToString("0.00");
+        }
+
+        if (progressSlider != null)
+        {
+            progressSlider.value = Mathf.Clamp01(zPosition / FinishZ);
+            if (progressSlider.fillRect != null)
+            {
+                Image fillImage = progressSlider.fillRect.GetComponent<Image>();
+                if (fillImage != null)
+                {
+                    fillImage.color = GetColor(wheelColor);
+                }
+            }
+        }
+    }
+
+    private void SetWheelColor(TestAWheelColor color)
+    {
+        wheelColor = color;
+        if (wheel != null)
+        {
+            Renderer renderer = wheel.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                renderer.sharedMaterial = GetMaterial(wheelColor);
+            }
+        }
+
+        UpdateUi();
+    }
+
+    private void CreateWall(string name, Vector3 position, Vector3 scale, Material material)
+    {
+        GameObject wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Register(wall);
+        wall.name = name;
+        wall.transform.position = position;
+        wall.transform.localScale = scale;
+        SetMaterial(wall, material);
+    }
+
+    private GameObject CreatePrimitiveChild(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Material material)
+    {
+        GameObject child = GameObject.CreatePrimitive(primitiveType);
+        Register(child);
+        child.name = name;
+        child.transform.SetParent(parent, false);
+        child.transform.localPosition = localPosition;
+        child.transform.localScale = localScale;
+        SetMaterial(child, material);
+        return child;
+    }
+
+    private void Register(GameObject gameObject)
+    {
+        spawnedObjects.Add(gameObject);
+    }
+
+    private void SetMaterial(GameObject gameObject, Material material)
+    {
+        Renderer renderer = gameObject.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            renderer.receiveShadows = true;
+        }
+    }
+
+    private Material GetMaterial(TestAWheelColor color)
+    {
+        switch (color)
+        {
+            case TestAWheelColor.Blue:
+                return blueMaterial;
+            case TestAWheelColor.Yellow:
+                return yellowMaterial;
+            default:
+                return greenMaterial;
+        }
+    }
+
+    private Color GetColor(TestAWheelColor color)
+    {
+        Material material = GetMaterial(color);
+        return material != null ? material.color : Color.white;
+    }
+
+    private static Material CreateMaterial(string name, Color color)
+    {
+        Material material = new Material(Shader.Find("Standard"));
+        material.name = name;
+        material.color = color;
+        return material;
+    }
+
+    private struct ColorPad
+    {
+        public readonly TestAWheelColor Color;
+        public readonly float X;
+        public readonly float StartZ;
+        public readonly float EndZ;
+        public readonly float HalfWidth;
+        public readonly GameObject Visual;
+        public bool Consumed;
+
+        public ColorPad(TestAWheelColor color, float x, float startZ, float endZ, float halfWidth, GameObject visual)
+        {
+            Color = color;
+            X = x;
+            StartZ = startZ;
+            EndZ = endZ;
+            HalfWidth = halfWidth;
+            Visual = visual;
+            Consumed = false;
+        }
+    }
+}
+
