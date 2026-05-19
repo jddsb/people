@@ -16,6 +16,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     [Header("Gameplay")]
     [SerializeField] private TestAWheelColor initialWheelColor = TestAWheelColor.Green;
     [SerializeField] private float forwardSpeed = 8.5f;
+    [SerializeField] private float maxForwardSpeed = 22f;
     [SerializeField] private float horizontalSpeed = 9f;
     [SerializeField] private float dragSensitivity = 0.018f;
     [SerializeField] private float initialWheelRadius = 0.72f;
@@ -37,8 +38,9 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     [SerializeField] private Material darkMaterial;
 
     private const float TrackWidth = 7.2f;
-    private const float TrackLength = 380f;
-    private const float FinishZ = 368f;
+    private const float TrackLength = 760f;
+    private const float FinishZ = 736f;
+    private const float TrackContentZScale = 2f;
     private const float TrackStripeSpacing = 9f;
     private const float PadHitExtraHalfWidth = 0.38f;
 
@@ -65,6 +67,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     private int score;
     private bool isDragging;
     private bool isFinished;
+    private float wheelRollAngle;
 
     private void Awake()
     {
@@ -256,32 +259,37 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
 
     private void BuildColorPads()
     {
-        AddPad("Green Growth Pad 1", TestAWheelColor.Green, -1.45f, 17f, 5.7f);
-        AddPad("Blue Shrink Pad 1", TestAWheelColor.Blue, 1.45f, 17f, 5.7f);
-        AddPad("Yellow Shrink Pad 1", TestAWheelColor.Yellow, 0.35f, 31f, 7f);
-        AddPad("Green Growth Pad 2", TestAWheelColor.Green, -1.35f, 43f, 6.4f);
-        AddPad("Blue Shrink Pad 2", TestAWheelColor.Blue, 1.35f, 43f, 6.4f);
-        AddPad("Green Growth Pad 3", TestAWheelColor.Green, 0.25f, 58f, 8.5f);
-        AddPad("Yellow Shrink Pad 2", TestAWheelColor.Yellow, -1.55f, 73f, 6.2f);
-        AddPad("Blue Shrink Pad 3", TestAWheelColor.Blue, 1.45f, 86f, 7.4f);
-        AddPad("Green Growth Pad 4", TestAWheelColor.Green, -0.7f, 100f, 8.2f);
-        AddPad("Yellow Shrink Pad 3", TestAWheelColor.Yellow, 1.25f, 116f, 7f);
-        AddPad("Green Growth Pad 5", TestAWheelColor.Green, 0f, 130f, 6.8f);
-        AddPad("Blue Shrink Pad 4", TestAWheelColor.Blue, 1.4f, 148f, 6.5f);
-        AddPad("Yellow Shrink Pad 4", TestAWheelColor.Yellow, -0.9f, 163f, 7f);
-        AddPad("Green Growth Pad 6", TestAWheelColor.Green, -1.2f, 178f, 6.8f);
-        AddPad("Blue Shrink Pad 5", TestAWheelColor.Blue, 1.35f, 193f, 6.4f);
-        AddPad("Yellow Shrink Pad 5", TestAWheelColor.Yellow, 0.5f, 208f, 7.2f);
-        AddPad("Green Growth Pad 7", TestAWheelColor.Green, -0.6f, 223f, 6.6f);
-        AddPad("Blue Shrink Pad 6", TestAWheelColor.Blue, 1.5f, 238f, 6.2f);
-        AddPad("Yellow Shrink Pad 6", TestAWheelColor.Yellow, -0.4f, 253f, 6.8f);
-        AddPad("Green Growth Pad 8", TestAWheelColor.Green, -1.3f, 268f, 6.5f);
-        AddPad("Blue Shrink Pad 7", TestAWheelColor.Blue, 1.25f, 283f, 6.6f);
-        AddPad("Yellow Shrink Pad 7", TestAWheelColor.Yellow, 0.8f, 298f, 7f);
-        AddPad("Green Growth Pad 9", TestAWheelColor.Green, -0.5f, 313f, 6.7f);
-        AddPad("Blue Shrink Pad 8", TestAWheelColor.Blue, 1.45f, 328f, 6.4f);
-        AddPad("Yellow Shrink Pad 8", TestAWheelColor.Yellow, -1.1f, 343f, 6.9f);
-        AddPad("Green Growth Pad 10", TestAWheelColor.Green, 0.35f, 358f, 6.3f);
+        AddScaledPad("Green Growth Pad 1", TestAWheelColor.Green, -1.45f, 17f, 5.7f);
+        AddScaledPad("Blue Shrink Pad 1", TestAWheelColor.Blue, 1.45f, 17f, 5.7f);
+        AddScaledPad("Yellow Shrink Pad 1", TestAWheelColor.Yellow, 0.35f, 31f, 7f);
+        AddScaledPad("Green Growth Pad 2", TestAWheelColor.Green, -1.35f, 43f, 6.4f);
+        AddScaledPad("Blue Shrink Pad 2", TestAWheelColor.Blue, 1.35f, 43f, 6.4f);
+        AddScaledPad("Green Growth Pad 3", TestAWheelColor.Green, 0.25f, 58f, 8.5f);
+        AddScaledPad("Yellow Shrink Pad 2", TestAWheelColor.Yellow, -1.55f, 73f, 6.2f);
+        AddScaledPad("Blue Shrink Pad 3", TestAWheelColor.Blue, 1.45f, 86f, 7.4f);
+        AddScaledPad("Green Growth Pad 4", TestAWheelColor.Green, -0.7f, 100f, 8.2f);
+        AddScaledPad("Yellow Shrink Pad 3", TestAWheelColor.Yellow, 1.25f, 116f, 7f);
+        AddScaledPad("Green Growth Pad 5", TestAWheelColor.Green, 0f, 130f, 6.8f);
+        AddScaledPad("Blue Shrink Pad 4", TestAWheelColor.Blue, 1.4f, 148f, 6.5f);
+        AddScaledPad("Yellow Shrink Pad 4", TestAWheelColor.Yellow, -0.9f, 163f, 7f);
+        AddScaledPad("Green Growth Pad 6", TestAWheelColor.Green, -1.2f, 178f, 6.8f);
+        AddScaledPad("Blue Shrink Pad 5", TestAWheelColor.Blue, 1.35f, 193f, 6.4f);
+        AddScaledPad("Yellow Shrink Pad 5", TestAWheelColor.Yellow, 0.5f, 208f, 7.2f);
+        AddScaledPad("Green Growth Pad 7", TestAWheelColor.Green, -0.6f, 223f, 6.6f);
+        AddScaledPad("Blue Shrink Pad 6", TestAWheelColor.Blue, 1.5f, 238f, 6.2f);
+        AddScaledPad("Yellow Shrink Pad 6", TestAWheelColor.Yellow, -0.4f, 253f, 6.8f);
+        AddScaledPad("Green Growth Pad 8", TestAWheelColor.Green, -1.3f, 268f, 6.5f);
+        AddScaledPad("Blue Shrink Pad 7", TestAWheelColor.Blue, 1.25f, 283f, 6.6f);
+        AddScaledPad("Yellow Shrink Pad 7", TestAWheelColor.Yellow, 0.8f, 298f, 7f);
+        AddScaledPad("Green Growth Pad 9", TestAWheelColor.Green, -0.5f, 313f, 6.7f);
+        AddScaledPad("Blue Shrink Pad 8", TestAWheelColor.Blue, 1.45f, 328f, 6.4f);
+        AddScaledPad("Yellow Shrink Pad 8", TestAWheelColor.Yellow, -1.1f, 343f, 6.9f);
+        AddScaledPad("Green Growth Pad 10", TestAWheelColor.Green, 0.35f, 358f, 6.3f);
+    }
+
+    private void AddScaledPad(string name, TestAWheelColor padColor, float x, float z, float length)
+    {
+        AddPad(name, padColor, x, z * TrackContentZScale, length);
     }
 
     private void AddPad(string name, TestAWheelColor padColor, float x, float z, float length)
@@ -484,15 +492,22 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         xPosition = Mathf.Clamp(xPosition + horizontal, -TrackWidth * 0.5f + 0.72f, TrackWidth * 0.5f - 0.72f);
     }
 
+    private float GetCurrentForwardSpeed()
+    {
+        float progress = Mathf.Clamp01(zPosition / FinishZ);
+        return Mathf.Lerp(forwardSpeed, maxForwardSpeed, progress);
+    }
+
     private void MoveRunner()
     {
-        zPosition += forwardSpeed * Time.deltaTime;
+        float speed = GetCurrentForwardSpeed();
+        zPosition += speed * Time.deltaTime;
         currentRadius = Mathf.Lerp(currentRadius, targetRadius, Time.deltaTime * 10f);
         runnerRoot.position = new Vector3(xPosition, 0f, zPosition);
         UpdateWheelScale(false);
 
-        float rollAngle = (forwardSpeed * Time.time / Mathf.Max(currentRadius, 0.05f)) * Mathf.Rad2Deg;
-        wheel.localRotation = Quaternion.Euler(rollAngle, 0f, 90f);
+        wheelRollAngle += speed * Time.deltaTime / Mathf.Max(currentRadius, 0.05f) * Mathf.Rad2Deg;
+        wheel.localRotation = Quaternion.Euler(wheelRollAngle, 0f, 90f);
 
         if (characterRoot != null)
         {
