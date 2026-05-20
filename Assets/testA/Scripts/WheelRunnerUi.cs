@@ -22,6 +22,7 @@ public partial class WheelRunnerBootstrap
         heightText = CreateText(canvasObject.transform, "Height Text", "Height 0.72", new Vector2(-28f, -28f), TextAnchor.UpperRight, 24, whiteMaterial.color);
         messageText = CreateText(canvasObject.transform, "Message Text", "拖动左右移动；跑道循环无尽，速度会越来越快，R 重开", new Vector2(0f, 72f), TextAnchor.LowerCenter, 20, whiteMaterial.color);
         BuildTutorialGuide(canvasObject.transform);
+        BuildRetryButton(canvasObject.transform);
 
         GameObject sliderObject = new GameObject("Level Progress");
         Register(sliderObject);
@@ -131,6 +132,36 @@ public partial class WheelRunnerBootstrap
         tutorialHand = hand.rectTransform;
     }
 
+    private void BuildRetryButton(Transform parent)
+    {
+        retryButtonObject = new GameObject("Retry Button");
+        Register(retryButtonObject);
+        retryButtonObject.transform.SetParent(parent, false);
+
+        RectTransform rectTransform = retryButtonObject.AddComponent<RectTransform>();
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.anchoredPosition = new Vector2(0f, -80f);
+        rectTransform.sizeDelta = new Vector2(260f, 82f);
+
+        Image background = retryButtonObject.AddComponent<Image>();
+        background.color = new Color(0.1f, 0.82f, 0.25f, 0.96f);
+
+        Button button = retryButtonObject.AddComponent<Button>();
+        button.targetGraphic = background;
+        button.onClick.AddListener(RestartScene);
+
+        Text label = CreateText(retryButtonObject.transform, "Retry Button Text", "重新挑战", Vector2.zero, TextAnchor.MiddleCenter, 34, whiteMaterial.color);
+        label.rectTransform.anchorMin = Vector2.zero;
+        label.rectTransform.anchorMax = Vector2.one;
+        label.rectTransform.offsetMin = Vector2.zero;
+        label.rectTransform.offsetMax = Vector2.zero;
+        label.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+
+        retryButtonObject.SetActive(false);
+    }
+
     private void UpdateTutorialGuide()
     {
         if (tutorialRoot == null)
@@ -164,6 +195,20 @@ public partial class WheelRunnerBootstrap
         if (messageText != null)
         {
             messageText.text = string.Empty;
+        }
+    }
+
+    private void ShowRetryButton()
+    {
+        if (retryButtonObject != null)
+        {
+            retryButtonObject.SetActive(true);
+        }
+
+        if (messageText != null)
+        {
+            messageText.text = "挑战失败";
+            messageText.color = whiteMaterial.color;
         }
     }
 

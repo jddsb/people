@@ -119,6 +119,7 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
     private Slider progressSlider;
     private RectTransform tutorialRoot;
     private RectTransform tutorialHand;
+    private GameObject retryButtonObject;
 
     private WheelRunnerColor wheelColor;
     private float currentRadius;
@@ -131,6 +132,9 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
     private int score;
     private bool isDragging;
     private bool gameStarted;
+    private bool isDead;
+    private float deathElapsed;
+    private Vector3 deathCharacterStartLocalPosition;
     private float wheelRollAngle;
     private float currentForwardSpeed;
 
@@ -155,7 +159,14 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.R))
         {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            RestartScene();
+            return;
+        }
+
+        if (isDead)
+        {
+            UpdateDeathAnimation();
+            UpdateUi();
             return;
         }
 
@@ -189,7 +200,53 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
         CheckPads();
         CheckSpikeTraps();
         CheckBaffles();
+        CheckDeathCondition();
         UpdateUi();
+    }
+
+    private void RestartScene()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    private void CheckDeathCondition()
+    {
+        if (isDead || targetRadius >= initialWheelRadius)
+        {
+            return;
+        }
+
+        TriggerDeath();
+    }
+
+    private void TriggerDeath()
+    {
+        isDead = true;
+        isDragging = false;
+        currentForwardSpeed = 0f;
+        deathElapsed = 0f;
+
+        if (characterRoot != null)
+        {
+            deathCharacterStartLocalPosition = characterRoot.localPosition;
+        }
+
+        ShowRetryButton();
+    }
+
+    private void UpdateDeathAnimation()
+    {
+        if (characterRoot == null)
+        {
+            return;
+        }
+
+        deathElapsed += Time.deltaTime;
+        float fallTime = Mathf.Clamp01(deathElapsed / 0.9f);
+        float eased = 1f - Mathf.Pow(1f - fallTime, 2f);
+        Vector3 fallOffset = new Vector3(1.15f * eased, -2.25f * eased, -0.75f * eased);
+        characterRoot.localPosition = deathCharacterStartLocalPosition + fallOffset;
+        characterRoot.localRotation = Quaternion.Euler(0f, 0f, -115f * eased);
     }
 
     private void LateUpdate()
