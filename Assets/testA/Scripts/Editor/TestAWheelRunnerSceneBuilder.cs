@@ -2,7 +2,6 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using System;
 
 public static class TestAWheelRunnerSceneBuilder
 {
@@ -29,14 +28,7 @@ public static class TestAWheelRunnerSceneBuilder
 
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         GameObject gameObject = new GameObject("Wheel Runner Bootstrap");
-        Type bootstrapType = Type.GetType("WheelRunnerBootstrap, Assembly-CSharp");
-        if (bootstrapType == null)
-        {
-            Debug.LogError("WheelRunnerBootstrap type was not found. Wait for scripts to compile, then rebuild the scene.");
-            return;
-        }
-
-        Component game = gameObject.AddComponent(bootstrapType);
+        Component game = gameObject.AddComponent(typeof(WheelRunnerBootstrap));
         AssignMaterials(game, green, blue, yellow, track, wall, skin, shirt, shorts, hair, white, dark);
 
         PrefabUtility.SaveAsPrefabAsset(gameObject, PrefabPath);
