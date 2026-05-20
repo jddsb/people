@@ -21,6 +21,7 @@ public partial class WheelRunnerBootstrap
         scoreText = CreateText(canvasObject.transform, "Score Text", "Score\n0", new Vector2(28f, -28f), TextAnchor.UpperLeft, 32, whiteMaterial.color);
         heightText = CreateText(canvasObject.transform, "Height Text", "Height 0.72", new Vector2(-28f, -28f), TextAnchor.UpperRight, 24, whiteMaterial.color);
         messageText = CreateText(canvasObject.transform, "Message Text", "拖动左右移动；跑道循环无尽，速度会越来越快，R 重开", new Vector2(0f, 72f), TextAnchor.LowerCenter, 20, whiteMaterial.color);
+        BuildTutorialGuide(canvasObject.transform);
 
         GameObject sliderObject = new GameObject("Level Progress");
         Register(sliderObject);
@@ -95,6 +96,75 @@ public partial class WheelRunnerBootstrap
         rectTransform.offsetMin = Vector2.zero;
         rectTransform.offsetMax = Vector2.zero;
         return imageObject;
+    }
+
+    private void BuildTutorialGuide(Transform parent)
+    {
+        GameObject rootObject = new GameObject("Tutorial Guide");
+        Register(rootObject);
+        rootObject.transform.SetParent(parent, false);
+        tutorialRoot = rootObject.AddComponent<RectTransform>();
+        tutorialRoot.anchorMin = new Vector2(0.5f, 0f);
+        tutorialRoot.anchorMax = new Vector2(0.5f, 0f);
+        tutorialRoot.pivot = new Vector2(0.5f, 0.5f);
+        tutorialRoot.anchoredPosition = new Vector2(0f, 150f);
+        tutorialRoot.sizeDelta = new Vector2(360f, 190f);
+
+        Text title = CreateText(rootObject.transform, "Tutorial Text", "Drag to Move", new Vector2(0f, 50f), TextAnchor.MiddleCenter, 34, whiteMaterial.color);
+        title.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        title.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        title.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        title.rectTransform.sizeDelta = new Vector2(420f, 70f);
+        title.fontStyle = FontStyle.Bold;
+
+        Text arrow = CreateText(rootObject.transform, "Tutorial Swipe Arrows", "<      >", new Vector2(0f, 2f), TextAnchor.MiddleCenter, 38, new Color(1f, 1f, 1f, 0.88f));
+        arrow.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        arrow.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        arrow.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        arrow.rectTransform.sizeDelta = new Vector2(260f, 60f);
+
+        Text hand = CreateText(rootObject.transform, "Tutorial Hand", "☝", new Vector2(0f, -46f), TextAnchor.MiddleCenter, 58, whiteMaterial.color);
+        hand.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        hand.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        hand.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        hand.rectTransform.sizeDelta = new Vector2(120f, 100f);
+        tutorialHand = hand.rectTransform;
+    }
+
+    private void UpdateTutorialGuide()
+    {
+        if (tutorialRoot == null)
+        {
+            return;
+        }
+
+        tutorialRoot.gameObject.SetActive(true);
+        if (tutorialHand == null)
+        {
+            return;
+        }
+
+        float x = Mathf.Sin(Time.unscaledTime * 4f) * 58f;
+        float tilt = Mathf.Sin(Time.unscaledTime * 4f) * -10f;
+        tutorialHand.anchoredPosition = new Vector2(x, -46f);
+        tutorialHand.localRotation = Quaternion.Euler(0f, 0f, tilt);
+    }
+
+    private void StartGame()
+    {
+        gameStarted = true;
+        isDragging = true;
+        lastPointerX = Input.mousePosition.x;
+
+        if (tutorialRoot != null)
+        {
+            tutorialRoot.gameObject.SetActive(false);
+        }
+
+        if (messageText != null)
+        {
+            messageText.text = string.Empty;
+        }
     }
 
     private void ShowLapMessage()

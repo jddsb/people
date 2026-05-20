@@ -117,6 +117,8 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
     private Text heightText;
     private Text messageText;
     private Slider progressSlider;
+    private RectTransform tutorialRoot;
+    private RectTransform tutorialHand;
 
     private WheelRunnerColor wheelColor;
     private float currentRadius;
@@ -128,6 +130,7 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
     private float lastPointerX;
     private int score;
     private bool isDragging;
+    private bool gameStarted;
     private float wheelRollAngle;
     private float currentForwardSpeed;
 
@@ -167,6 +170,18 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.Alpha3))
         {
             SetWheelColor(WheelRunnerColor.Yellow);
+        }
+
+        if (!gameStarted)
+        {
+            UpdateTutorialGuide();
+            if (Input.GetMouseButtonDown(0) || Input.touchCount > 0)
+            {
+                StartGame();
+            }
+
+            UpdateUi();
+            return;
         }
 
         HandleInput();
