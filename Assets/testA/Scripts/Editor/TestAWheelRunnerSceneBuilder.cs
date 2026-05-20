@@ -2,12 +2,13 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System;
 
 public static class TestAWheelRunnerSceneBuilder
 {
     private const string ArtPath = "Assets/testA/Arts";
     private const string ScenePath = "Assets/testA/Scenes/testA.scene";
-    private const string PrefabPath = "Assets/testA/Arts/TestAWheelRunnerGame.prefab";
+    private const string PrefabPath = "Assets/testA/Arts/WheelRunnerBootstrap.prefab";
 
     [MenuItem("Tools/testA/Build Wheel Runner Scene")]
     public static void BuildScene()
@@ -27,8 +28,15 @@ public static class TestAWheelRunnerSceneBuilder
         Material dark = CreateOrUpdateMaterial("Dark_Detail.mat", new Color(0.07f, 0.06f, 0.1f));
 
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-        GameObject gameObject = new GameObject("testA Wheel Runner Game");
-        TestAWheelRunnerGame game = gameObject.AddComponent<TestAWheelRunnerGame>();
+        GameObject gameObject = new GameObject("Wheel Runner Bootstrap");
+        Type bootstrapType = Type.GetType("WheelRunnerBootstrap, Assembly-CSharp");
+        if (bootstrapType == null)
+        {
+            Debug.LogError("WheelRunnerBootstrap type was not found. Wait for scripts to compile, then rebuild the scene.");
+            return;
+        }
+
+        Component game = gameObject.AddComponent(bootstrapType);
         AssignMaterials(game, green, blue, yellow, track, wall, skin, shirt, shorts, hair, white, dark);
 
         PrefabUtility.SaveAsPrefabAsset(gameObject, PrefabPath);
@@ -78,7 +86,7 @@ public static class TestAWheelRunnerSceneBuilder
         return material;
     }
 
-    private static void AssignMaterials(TestAWheelRunnerGame game, Material green, Material blue, Material yellow, Material track, Material wall, Material skin, Material shirt, Material shorts, Material hair, Material white, Material dark)
+    private static void AssignMaterials(Component game, Material green, Material blue, Material yellow, Material track, Material wall, Material skin, Material shirt, Material shorts, Material hair, Material white, Material dark)
     {
         SerializedObject serializedObject = new SerializedObject(game);
         serializedObject.FindProperty("greenMaterial").objectReferenceValue = green;
