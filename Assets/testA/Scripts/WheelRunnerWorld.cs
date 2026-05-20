@@ -38,6 +38,7 @@ public partial class WheelRunnerBootstrap
         colorPads.Clear();
         colorBaffles.Clear();
         spikeTraps.Clear();
+        fallingBalls.Clear();
     }
 
     private void BuildLightingAndCamera()

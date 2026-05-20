@@ -72,6 +72,30 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
         }
     }
 
+    internal struct WheelRunnerFallingBall
+    {
+        public WheelRunnerColor Color;
+        public float X;
+        public float Z;
+        public float Y;
+        public float RollAngle;
+        public GameObject Visual;
+        public bool HasLanded;
+        public bool Consumed;
+
+        public WheelRunnerFallingBall(WheelRunnerColor color, float x, float z, float y, GameObject visual)
+        {
+            Color = color;
+            X = x;
+            Z = z;
+            Y = y;
+            RollAngle = 0f;
+            Visual = visual;
+            HasLanded = false;
+            Consumed = false;
+        }
+    }
+
     [Header("Gameplay")]
     [SerializeField] private WheelRunnerColor initialWheelColor = WheelRunnerColor.Green;
     [SerializeField] private float forwardSpeed = 8.5f;
@@ -87,6 +111,13 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
     [SerializeField] private float maxWheelRadius = 12f;
     [SerializeField] private float spikeRadiusMultiplier = 0.42f;
     [SerializeField] private float spikeSlowdownMultiplier = 0.18f;
+    [SerializeField] private float fallingBallRadius = 0.62f;
+    [SerializeField] private float fallingBallSpawnDistance = 42f;
+    [SerializeField] private float fallingBallSpawnInterval = 3.2f;
+    [SerializeField] private float fallingBallFallSpeed = 10f;
+    [SerializeField] private float fallingBallRollSpeed = 13f;
+    [SerializeField] private float fallingBallRadiusMultiplier = 0.34f;
+    [SerializeField] private float fallingBallSlowdownMultiplier = 0.16f;
 
     [Header("Art Materials")]
     [SerializeField] private Material greenMaterial;
@@ -105,6 +136,7 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
     private readonly List<WheelRunnerColorPad> colorPads = new List<WheelRunnerColorPad>();
     private readonly List<WheelRunnerColorBaffle> colorBaffles = new List<WheelRunnerColorBaffle>();
     private readonly List<WheelRunnerSpikeTrap> spikeTraps = new List<WheelRunnerSpikeTrap>();
+    private readonly List<WheelRunnerFallingBall> fallingBalls = new List<WheelRunnerFallingBall>();
     private readonly List<GameObject> spawnedObjects = new List<GameObject>();
     private readonly float[] loopSegmentStarts = new float[LoopSegmentCount];
     private readonly Transform[] loopSegmentRoots = new Transform[LoopSegmentCount];
@@ -137,6 +169,7 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
     private Vector3 deathCharacterStartLocalPosition;
     private float wheelRollAngle;
     private float currentForwardSpeed;
+    private float nextFallingBallSpawnTime;
 
     private void Awake()
     {
@@ -197,8 +230,10 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
 
         HandleInput();
         MoveRunner();
+        UpdateFallingBalls();
         CheckPads();
         CheckSpikeTraps();
+        CheckFallingBalls();
         CheckBaffles();
         CheckDeathCondition();
         UpdateUi();

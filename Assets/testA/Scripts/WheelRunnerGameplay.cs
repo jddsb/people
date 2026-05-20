@@ -57,6 +57,93 @@ public partial class WheelRunnerBootstrap
         }
     }
 
+    private void UpdateFallingBalls()
+    {
+        if (Time.time >= nextFallingBallSpawnTime)
+        {
+            SpawnFallingBall();
+            nextFallingBallSpawnTime = Time.time + Mathf.Max(0.65f, fallingBallSpawnInterval);
+        }
+
+        float groundY = fallingBallRadius;
+        for (int i = fallingBalls.Count - 1; i >= 0; i--)
+        {
+            WheelRunnerFallingBall ball = fallingBalls[i];
+            if (ball.Consumed)
+            {
+                RemoveFallingBallAt(i);
+                continue;
+            }
+
+            if (!ball.HasLanded)
+            {
+                ball.Y = Mathf.MoveTowards(ball.Y, groundY, fallingBallFallSpeed * Time.deltaTime);
+                ball.HasLanded = Mathf.Approximately(ball.Y, groundY);
+            }
+            else
+            {
+                float rollDelta = fallingBallRollSpeed * Time.deltaTime;
+                ball.Z -= rollDelta;
+                ball.RollAngle += rollDelta / Mathf.Max(fallingBallRadius, 0.05f) * Mathf.Rad2Deg;
+            }
+
+            if (ball.Visual != null)
+            {
+                ball.Visual.transform.position = new Vector3(ball.X, ball.Y, ball.Z);
+                ball.Visual.transform.rotation = Quaternion.Euler(ball.RollAngle, 0f, 0f);
+            }
+
+            if (ball.Z < zPosition - 28f)
+            {
+                RemoveFallingBallAt(i);
+                continue;
+            }
+
+            fallingBalls[i] = ball;
+        }
+    }
+
+    private void SpawnFallingBall()
+    {
+        WheelRunnerColor ballColor = GetDifferentBallColor();
+        float[] lanes = { -2.2f, 0f, 2.2f };
+        float x = lanes[Random.Range(0, lanes.Length)];
+        float z = zPosition + fallingBallSpawnDistance + Random.Range(-7f, 13f);
+        float y = 8.5f + Random.Range(0f, 3.5f);
+
+        GameObject ballObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        Register(ballObject);
+        ballObject.name = ballColor + " Falling Ball";
+        ballObject.transform.localScale = Vector3.one * (fallingBallRadius * 2f);
+        SetMaterial(ballObject, GetMaterial(ballColor));
+        RemoveCollider(ballObject);
+
+        fallingBalls.Add(new WheelRunnerFallingBall(ballColor, x, z, y, ballObject));
+    }
+
+    private WheelRunnerColor GetDifferentBallColor()
+    {
+        int offset = Random.Range(1, 3);
+        return (WheelRunnerColor)(((int)wheelColor + offset) % 3);
+    }
+
+    private void RemoveFallingBallAt(int index)
+    {
+        if (index < 0 || index >= fallingBalls.Count)
+        {
+            return;
+        }
+
+        GameObject visual = fallingBalls[index].Visual;
+        if (visual != null)
+        {
+            spawnedObjects.Remove(visual);
+            Destroy(visual);
+        }
+
+        fallingBalls.RemoveAt(index);
+    }
+
     private float GetLoopZ(float worldZ)
     {
         return TrackLoopStartZ + Mathf.Repeat(worldZ - TrackLoopStartZ, TrackLoopLength);
@@ -184,6 +271,40 @@ public partial class WheelRunnerBootstrap
         }
 
         spikeTrap.transform.localScale = new Vector3(1.08f, 0.36f, 1.08f);
+    }
+
+    private void CheckFallingBalls()
+    {
+        for (int i = 0; i < fallingBalls.Count; i++)
+        {
+            WheelRunnerFallingBall ball = fallingBalls[i];
+            if (ball.Consumed || !ball.HasLanded)
+            {
+                continue;
+            }
+
+            float hitDistance = Mathf.Max(currentRadius, targetRadius) + fallingBallRadius * 0.8f;
+            bool isCloseOnZ = Mathf.Abs(zPosition - ball.Z) <= hitDistance;
+            bool isCloseOnX = Mathf.Abs(xPosition - ball.X) <= hitDistance;
+            if (!isCloseOnZ || !isCloseOnX)
+            {
+                continue;
+            }
+
+            ball.Consumed = true;
+            fallingBalls[i] = ball;
+
+            if (ball.Color != wheelColor)
+            {
+                float radiusMultiplier = Mathf.Clamp(fallingBallRadiusMultiplier, 0.05f, 1f);
+                float speedMultiplier = Mathf.Clamp(fallingBallSlowdownMultiplier, 0.05f, 1f);
+                targetRadius = Mathf.Max(minWheelRadius, targetRadius * radiusMultiplier);
+                currentRadius = Mathf.Min(currentRadius, targetRadius + radiusStep * 0.2f);
+                currentForwardSpeed = Mathf.Max(0.1f, currentForwardSpeed * speedMultiplier);
+                score = Mathf.Max(0, score - 4);
+                ShowFallingBallMessage(ball.Color);
+            }
+        }
     }
 
     private void CheckBaffles()

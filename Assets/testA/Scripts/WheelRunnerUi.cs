@@ -186,6 +186,7 @@ public partial class WheelRunnerBootstrap
         gameStarted = true;
         isDragging = true;
         lastPointerX = Input.mousePosition.x;
+        nextFallingBallSpawnTime = Time.time + 1.4f;
 
         if (tutorialRoot != null)
         {
@@ -262,6 +263,17 @@ public partial class WheelRunnerBootstrap
 
         messageText.text = "碰到地刺：轮子大幅降低并严重减速！";
         messageText.color = spikeMaterial != null ? spikeMaterial.color : Color.gray;
+    }
+
+    private void ShowFallingBallMessage(WheelRunnerColor ballColor)
+    {
+        if (messageText == null)
+        {
+            return;
+        }
+
+        messageText.text = "撞到异色球：轮子大幅降低并减速！";
+        messageText.color = GetColor(ballColor);
     }
 
     private void UpdateUi()
