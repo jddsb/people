@@ -18,6 +18,8 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     [SerializeField] private float forwardSpeed = 8.5f;
     [SerializeField] private float maxForwardSpeed = 44f;
     [SerializeField] private float speedRampDistance = 320f;
+    [SerializeField] private float mismatchSlowdownMultiplier = 0.42f;
+    [SerializeField] private float postSlowdownAcceleration = 9f;
     [SerializeField] private float horizontalSpeed = 9f;
     [SerializeField] private float dragSensitivity = 0.018f;
     [SerializeField] private float initialWheelRadius = 0.72f;
@@ -74,6 +76,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     private int score;
     private bool isDragging;
     private float wheelRollAngle;
+    private float currentForwardSpeed;
 
     private void Awake()
     {
@@ -85,6 +88,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         wheelColor = initialWheelColor;
         currentRadius = initialWheelRadius;
         targetRadius = initialWheelRadius;
+        currentForwardSpeed = forwardSpeed;
         BuildFallbackMaterials();
         BuildWorld();
         UpdateWheelScale(true);
@@ -529,7 +533,9 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
     {
         float ramp = 1f - Mathf.Exp(-totalDistanceTraveled / Mathf.Max(speedRampDistance, 1f));
         float lapBoost = lapCount * 0.05f;
-        return Mathf.Lerp(forwardSpeed, maxForwardSpeed, Mathf.Clamp01(ramp + lapBoost));
+        float targetSpeed = Mathf.Lerp(forwardSpeed, maxForwardSpeed, Mathf.Clamp01(ramp + lapBoost));
+        currentForwardSpeed = Mathf.MoveTowards(currentForwardSpeed, targetSpeed, postSlowdownAcceleration * Time.deltaTime);
+        return currentForwardSpeed;
     }
 
     private void MoveRunner()
@@ -552,6 +558,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
             float bob = Mathf.Sin(Time.time * 11f) * 0.035f;
             characterRoot.localPosition = new Vector3(0f, currentRadius * 2f + 0.04f + bob, -0.06f);
         }
+
     }
 
     private float GetLoopZ(float worldZ)
@@ -677,6 +684,11 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
             pad.Consumed = true;
             colorPads[i] = pad;
             targetRadius = newTargetRadius;
+            if (!isMatch)
+            {
+                float slowdownMultiplier = Mathf.Clamp(mismatchSlowdownMultiplier, 0.05f, 1f);
+                currentForwardSpeed = Mathf.Max(0.1f, currentForwardSpeed * slowdownMultiplier);
+            }
             score = Mathf.Max(0, score + (isMatch ? 1 : -1));
             PulsePad(pad.Visual, isMatch);
             ShowPadMessage(isMatch, pad.Color, radiusChanged);
@@ -706,7 +718,7 @@ public sealed class TestAWheelRunnerGame : MonoBehaviour
         }
         else
         {
-            messageText.text = isMatch ? "颜色相同：轮子升高！" : "颜色不同：轮子降低！";
+            messageText.text = isMatch ? "颜色相同：轮子升高！" : "颜色不同：轮子降低并减速！";
         }
 
         messageText.color = isMatch ? GetColor(wheelColor) : GetColor(padColor);
