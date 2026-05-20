@@ -98,6 +98,17 @@ public partial class WheelRunnerBootstrap
                 baffle.Visual.transform.localScale = new Vector3(TrackWidth - 0.35f, 3.7f, 0.14f);
             }
         }
+
+        for (int i = 0; i < spikeTraps.Count; i++)
+        {
+            WheelRunnerSpikeTrap spikeTrap = spikeTraps[i];
+            spikeTrap.Consumed = false;
+            spikeTraps[i] = spikeTrap;
+            if (spikeTrap.Visual != null)
+            {
+                spikeTrap.Visual.transform.localScale = Vector3.one;
+            }
+        }
     }
 
     private void CheckPads()
@@ -139,6 +150,40 @@ public partial class WheelRunnerBootstrap
         }
 
         pad.transform.localScale = new Vector3(pad.transform.localScale.x, isMatch ? 0.22f : 0.05f, pad.transform.localScale.z);
+    }
+
+    private void CheckSpikeTraps()
+    {
+        float loopZ = GetLoopZ(zPosition);
+        for (int i = 0; i < spikeTraps.Count; i++)
+        {
+            WheelRunnerSpikeTrap spikeTrap = spikeTraps[i];
+            if (spikeTrap.Consumed || loopZ < spikeTrap.StartZ || loopZ > spikeTrap.EndZ || Mathf.Abs(xPosition - spikeTrap.X) > spikeTrap.HalfWidth)
+            {
+                continue;
+            }
+
+            spikeTrap.Consumed = true;
+            spikeTraps[i] = spikeTrap;
+            float radiusMultiplier = Mathf.Clamp(spikeRadiusMultiplier, 0.05f, 1f);
+            float speedMultiplier = Mathf.Clamp(spikeSlowdownMultiplier, 0.05f, 1f);
+            targetRadius = Mathf.Max(minWheelRadius, targetRadius * radiusMultiplier);
+            currentRadius = Mathf.Min(currentRadius, targetRadius + radiusStep * 0.25f);
+            currentForwardSpeed = Mathf.Max(0.1f, currentForwardSpeed * speedMultiplier);
+            score = Mathf.Max(0, score - 3);
+            PulseSpikeTrap(spikeTrap.Visual);
+            ShowSpikeTrapMessage();
+        }
+    }
+
+    private void PulseSpikeTrap(GameObject spikeTrap)
+    {
+        if (spikeTrap == null)
+        {
+            return;
+        }
+
+        spikeTrap.transform.localScale = new Vector3(1.08f, 0.36f, 1.08f);
     }
 
     private void CheckBaffles()

@@ -10,6 +10,7 @@ public partial class WheelRunnerBootstrap
     private const float TrackContentZScale = 2f;
     private const float TrackStripeSpacing = 9f;
     private const float PadHitExtraHalfWidth = 0.38f;
+    private const float SpikeHitExtraHalfWidth = 0.42f;
     private const float BaffleSpacing = 150f;
 
     private void BuildLoopSegments()
@@ -26,6 +27,7 @@ public partial class WheelRunnerBootstrap
 
             BuildTrackSegmentVisuals(segmentRoot.transform);
             BuildColorPadsForSegment(segmentRoot.transform, i == 0);
+            BuildSpikeTrapsForSegment(segmentRoot.transform, i == 0);
             BuildColorBafflesForSegment(segmentRoot.transform, i == 0);
         }
     }
@@ -159,6 +161,106 @@ public partial class WheelRunnerBootstrap
         {
             colorBaffles.Add(new WheelRunnerColorBaffle(baffleColor, z, 0.42f, gate));
         }
+    }
+
+    private void BuildSpikeTrapsForSegment(Transform parent, bool registerGameplay)
+    {
+        AddScaledSpikeTrap(parent, registerGameplay, "Center Spike Trap 1", 0f, 36f, 3.05f, 8.2f);
+        AddScaledSpikeTrap(parent, registerGameplay, "Left Spike Trap 1", -1.35f, 137f, 2.2f, 7f);
+        AddScaledSpikeTrap(parent, registerGameplay, "Right Spike Trap 1", 1.25f, 221f, 2.3f, 7.4f);
+        AddScaledSpikeTrap(parent, registerGameplay, "Center Spike Trap 2", 0.15f, 302f, 3f, 8f);
+    }
+
+    private void AddScaledSpikeTrap(Transform parent, bool registerGameplay, string name, float x, float z, float width, float length)
+    {
+        AddSpikeTrap(parent, registerGameplay, name, x, z * TrackContentZScale, width, length);
+    }
+
+    private void AddSpikeTrap(Transform parent, bool registerGameplay, string name, float x, float z, float width, float length)
+    {
+        float localCenterZ = z - TrackLoopStartZ;
+        GameObject trapRoot = new GameObject(name);
+        Register(trapRoot);
+        trapRoot.transform.SetParent(parent, false);
+        trapRoot.transform.localPosition = new Vector3(x, 0f, localCenterZ);
+
+        GameObject basePlate = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Register(basePlate);
+        basePlate.name = name + " Base";
+        basePlate.transform.SetParent(trapRoot.transform, false);
+        basePlate.transform.localPosition = new Vector3(0f, 0.035f, 0f);
+        basePlate.transform.localScale = new Vector3(width, 0.07f, length);
+        SetMaterial(basePlate, CreateMaterial("Runtime Spike Base", new Color(0.11f, 0.11f, 0.12f)));
+        RemoveCollider(basePlate);
+
+        const int columns = 5;
+        const int rows = 6;
+        float xSpacing = width / (columns + 0.6f);
+        float zSpacing = length / (rows + 0.7f);
+        for (int row = 0; row < rows; row++)
+        {
+            for (int column = 0; column < columns; column++)
+            {
+                GameObject spike = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                Register(spike);
+                spike.name = name + " Spike";
+                spike.transform.SetParent(trapRoot.transform, false);
+                float spikeX = (column - (columns - 1) * 0.5f) * xSpacing;
+                float spikeZ = (row - (rows - 1) * 0.5f) * zSpacing;
+                spike.transform.localPosition = new Vector3(spikeX, 0.36f, spikeZ);
+                spike.transform.localRotation = Quaternion.identity;
+                spike.transform.localScale = new Vector3(0.24f, 0.68f, 0.24f);
+                SetMaterial(spike, spikeMaterial);
+                MakeSpikeMesh(spike);
+                RemoveCollider(spike);
+            }
+        }
+
+        if (registerGameplay)
+        {
+            spikeTraps.Add(new WheelRunnerSpikeTrap(x, z - length * 0.5f, z + length * 0.5f, width * 0.5f + SpikeHitExtraHalfWidth, trapRoot));
+        }
+    }
+
+    private static void MakeSpikeMesh(GameObject spike)
+    {
+        MeshFilter meshFilter = spike.GetComponent<MeshFilter>();
+        if (meshFilter == null)
+        {
+            return;
+        }
+
+        const int sides = 12;
+        Vector3[] vertices = new Vector3[sides + 2];
+        int[] triangles = new int[sides * 6];
+        vertices[0] = new Vector3(0f, 0.5f, 0f);
+        vertices[1] = new Vector3(0f, -0.5f, 0f);
+
+        for (int i = 0; i < sides; i++)
+        {
+            float angle = Mathf.PI * 2f * i / sides;
+            vertices[i + 2] = new Vector3(Mathf.Cos(angle) * 0.5f, -0.5f, Mathf.Sin(angle) * 0.5f);
+        }
+
+        int triangleIndex = 0;
+        for (int i = 0; i < sides; i++)
+        {
+            int current = i + 2;
+            int next = i == sides - 1 ? 2 : i + 3;
+            triangles[triangleIndex++] = 0;
+            triangles[triangleIndex++] = next;
+            triangles[triangleIndex++] = current;
+            triangles[triangleIndex++] = 1;
+            triangles[triangleIndex++] = current;
+            triangles[triangleIndex++] = next;
+        }
+
+        Mesh mesh = new Mesh();
+        mesh.name = "Runtime Spike Cone";
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+        meshFilter.sharedMesh = mesh;
     }
 
     private float GetFrontSegmentStart()

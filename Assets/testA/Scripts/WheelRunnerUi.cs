@@ -138,6 +138,17 @@ public partial class WheelRunnerBootstrap
         messageText.color = GetColor(baffleColor);
     }
 
+    private void ShowSpikeTrapMessage()
+    {
+        if (messageText == null)
+        {
+            return;
+        }
+
+        messageText.text = "碰到地刺：轮子大幅降低并严重减速！";
+        messageText.color = spikeMaterial != null ? spikeMaterial.color : Color.gray;
+    }
+
     private void UpdateUi()
     {
         if (scoreText != null)

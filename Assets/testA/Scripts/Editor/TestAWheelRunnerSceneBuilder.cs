@@ -25,11 +25,12 @@ public static class TestAWheelRunnerSceneBuilder
         Material hair = CreateOrUpdateMaterial("Runner_Hair.mat", new Color(0.04f, 0.035f, 0.03f));
         Material white = CreateOrUpdateMaterial("Runner_White.mat", Color.white);
         Material dark = CreateOrUpdateMaterial("Dark_Detail.mat", new Color(0.07f, 0.06f, 0.1f));
+        Material spike = CreateOrUpdateMaterial("Spike_Dark.mat", new Color(0.18f, 0.18f, 0.18f));
 
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         GameObject gameObject = new GameObject("Wheel Runner Bootstrap");
         Component game = gameObject.AddComponent(typeof(WheelRunnerBootstrap));
-        AssignMaterials(game, green, blue, yellow, track, wall, skin, shirt, shorts, hair, white, dark);
+        AssignMaterials(game, green, blue, yellow, track, wall, skin, shirt, shorts, hair, white, dark, spike);
 
         PrefabUtility.SaveAsPrefabAsset(gameObject, PrefabPath);
         EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ScenePath);
@@ -78,7 +79,7 @@ public static class TestAWheelRunnerSceneBuilder
         return material;
     }
 
-    private static void AssignMaterials(Component game, Material green, Material blue, Material yellow, Material track, Material wall, Material skin, Material shirt, Material shorts, Material hair, Material white, Material dark)
+    private static void AssignMaterials(Component game, Material green, Material blue, Material yellow, Material track, Material wall, Material skin, Material shirt, Material shorts, Material hair, Material white, Material dark, Material spike)
     {
         SerializedObject serializedObject = new SerializedObject(game);
         serializedObject.FindProperty("greenMaterial").objectReferenceValue = green;
@@ -92,6 +93,7 @@ public static class TestAWheelRunnerSceneBuilder
         serializedObject.FindProperty("hairMaterial").objectReferenceValue = hair;
         serializedObject.FindProperty("whiteMaterial").objectReferenceValue = white;
         serializedObject.FindProperty("darkMaterial").objectReferenceValue = dark;
+        serializedObject.FindProperty("spikeMaterial").objectReferenceValue = spike;
         serializedObject.ApplyModifiedPropertiesWithoutUndo();
     }
 }

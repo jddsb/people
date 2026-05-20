@@ -15,6 +15,7 @@ public partial class WheelRunnerBootstrap
         hairMaterial = hairMaterial != null ? hairMaterial : CreateMaterial("Runtime Hair", new Color(0.04f, 0.035f, 0.03f));
         whiteMaterial = whiteMaterial != null ? whiteMaterial : CreateMaterial("Runtime White", Color.white);
         darkMaterial = darkMaterial != null ? darkMaterial : CreateMaterial("Runtime Dark", new Color(0.07f, 0.06f, 0.1f));
+        spikeMaterial = spikeMaterial != null ? spikeMaterial : CreateMaterial("Runtime Spike", new Color(0.18f, 0.18f, 0.18f));
     }
 
     private void SetMaterial(GameObject gameObject, Material material)

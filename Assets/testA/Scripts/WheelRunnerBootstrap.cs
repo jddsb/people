@@ -52,6 +52,26 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
         }
     }
 
+    internal struct WheelRunnerSpikeTrap
+    {
+        public readonly float X;
+        public readonly float StartZ;
+        public readonly float EndZ;
+        public readonly float HalfWidth;
+        public readonly GameObject Visual;
+        public bool Consumed;
+
+        public WheelRunnerSpikeTrap(float x, float startZ, float endZ, float halfWidth, GameObject visual)
+        {
+            X = x;
+            StartZ = startZ;
+            EndZ = endZ;
+            HalfWidth = halfWidth;
+            Visual = visual;
+            Consumed = false;
+        }
+    }
+
     [Header("Gameplay")]
     [SerializeField] private WheelRunnerColor initialWheelColor = WheelRunnerColor.Green;
     [SerializeField] private float forwardSpeed = 8.5f;
@@ -65,6 +85,8 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
     [SerializeField] private float radiusStep = 0.36f;
     [SerializeField] private float minWheelRadius = 0.28f;
     [SerializeField] private float maxWheelRadius = 12f;
+    [SerializeField] private float spikeRadiusMultiplier = 0.42f;
+    [SerializeField] private float spikeSlowdownMultiplier = 0.18f;
 
     [Header("Art Materials")]
     [SerializeField] private Material greenMaterial;
@@ -78,9 +100,11 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
     [SerializeField] private Material hairMaterial;
     [SerializeField] private Material whiteMaterial;
     [SerializeField] private Material darkMaterial;
+    [SerializeField] private Material spikeMaterial;
 
     private readonly List<WheelRunnerColorPad> colorPads = new List<WheelRunnerColorPad>();
     private readonly List<WheelRunnerColorBaffle> colorBaffles = new List<WheelRunnerColorBaffle>();
+    private readonly List<WheelRunnerSpikeTrap> spikeTraps = new List<WheelRunnerSpikeTrap>();
     private readonly List<GameObject> spawnedObjects = new List<GameObject>();
     private readonly float[] loopSegmentStarts = new float[LoopSegmentCount];
     private readonly Transform[] loopSegmentRoots = new Transform[LoopSegmentCount];
@@ -148,6 +172,7 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
         HandleInput();
         MoveRunner();
         CheckPads();
+        CheckSpikeTraps();
         CheckBaffles();
         UpdateUi();
     }
