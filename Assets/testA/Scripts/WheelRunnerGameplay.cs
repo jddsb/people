@@ -283,7 +283,8 @@ public partial class WheelRunnerBootstrap
                 continue;
             }
 
-            float hitDistance = currentRadius * 0.5f + fallingBallRadius * 0.3f;
+            float characterRadius = 0.35f;
+            float hitDistance = characterRadius + fallingBallRadius * 0.25f;
             bool isCloseOnZ = Mathf.Abs(zPosition - ball.Z) <= hitDistance;
             bool isCloseOnX = Mathf.Abs(xPosition - ball.X) <= hitDistance;
             if (!isCloseOnZ || !isCloseOnX)
