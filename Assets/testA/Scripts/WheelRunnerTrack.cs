@@ -9,8 +9,8 @@ public partial class WheelRunnerBootstrap
     private const float LoopSegmentRecycleMargin = 80f;
     private const float TrackContentZScale = 2f;
     private const float TrackStripeSpacing = 9f;
-    private const float PadHitExtraHalfWidth = 0.22f;
-    private const float SpikeHitExtraHalfWidth = 0.42f;
+    private const float PadHitExtraHalfWidth = 0.08f;
+    private const float SpikeHitExtraHalfWidth = 0.15f;
     private const float BaffleSpacing = 150f;
 
     private void BuildLoopSegments()
