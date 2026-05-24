@@ -222,14 +222,33 @@ public partial class WheelRunnerBootstrap
         button.targetGraphic = background;
         button.onClick.AddListener(RestartScene);
 
-        Text label = CreateText(retryButtonObject.transform, "Retry Button Text", "重新挑战", Vector2.zero, TextAnchor.MiddleCenter, 34, whiteMaterial.color);
-        label.rectTransform.anchorMin = Vector2.zero;
-        label.rectTransform.anchorMax = Vector2.one;
-        label.rectTransform.offsetMin = Vector2.zero;
-        label.rectTransform.offsetMax = Vector2.zero;
-        label.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        BuildRetryButtonLabel(retryButtonObject.transform);
 
         retryButtonObject.SetActive(false);
+    }
+
+    private void BuildRetryButtonLabel(Transform parent)
+    {
+        GameObject labelObject = new GameObject("Retry Button Label");
+        Register(labelObject);
+        labelObject.transform.SetParent(parent, false);
+
+        RectTransform labelRect = labelObject.AddComponent<RectTransform>();
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+        labelRect.pivot = new Vector2(0.5f, 0.5f);
+        labelRect.sizeDelta = Vector2.zero;
+
+        ChineseTextRenderer label = labelObject.AddComponent<ChineseTextRenderer>();
+        label.SetText("重新开始");
+        label.fontSize = 34;
+        label.textColor = whiteMaterial.color;
+        label.fontStyle = FontStyle.Bold;
+        label.alignment = TextAnchor.MiddleCenter;
+        label.textureWidth = 260;
+        label.textureHeight = 82;
     }
 
     private void UpdateTutorialGuide()
