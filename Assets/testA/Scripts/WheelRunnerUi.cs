@@ -18,8 +18,8 @@ public partial class WheelRunnerBootstrap
         canvasObject.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         canvasObject.AddComponent<GraphicRaycaster>();
 
-        scoreText = CreateText(canvasObject.transform, "Score Text", "分数\n0", new Vector2(28f, -100f), TextAnchor.UpperLeft, 32, whiteMaterial.color);
-        heightText = CreateText(canvasObject.transform, "Height Text", "高度 0.72", new Vector2(-28f, -100f), TextAnchor.UpperRight, 32, whiteMaterial.color);
+        scoreText = CreateText(canvasObject.transform, "Score Text", "分数\n0", new Vector2(28f, -150f), TextAnchor.UpperLeft, 32, whiteMaterial.color);
+        heightText = CreateText(canvasObject.transform, "Height Text", "高度 0.72", new Vector2(-28f, -150f), TextAnchor.UpperRight, 32, whiteMaterial.color);
         //messageText = CreateText(canvasObject.transform, "Message Text", "拖动左右移动；跑道循环无尽，速度会越来越快", new Vector2(0f, 72f), TextAnchor.LowerCenter, 20, whiteMaterial.color);
         BuildTutorialGuide(canvasObject.transform);
         BuildRetryButton(canvasObject.transform);
@@ -31,7 +31,7 @@ public partial class WheelRunnerBootstrap
         sliderRect.anchorMin = new Vector2(0.5f, 1f);
         sliderRect.anchorMax = new Vector2(0.5f, 1f);
         sliderRect.pivot = new Vector2(0.5f, 1f);
-        sliderRect.anchoredPosition = new Vector2(0f, -100f);
+        sliderRect.anchoredPosition = new Vector2(0f, -150f);
         sliderRect.sizeDelta = new Vector2(320f, 28f);
         progressSlider = sliderObject.AddComponent<Slider>();
         progressSlider.minValue = 0f;
