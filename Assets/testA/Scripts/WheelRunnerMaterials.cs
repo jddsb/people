@@ -58,18 +58,11 @@ public partial class WheelRunnerBootstrap
 
     private static Material CreateTransparentMaterial(string name, Color color)
     {
-        Material material = CreateMaterial(name, color);
-        Color transparent = color;
-        transparent.a = 0.42f;
-        material.color = transparent;
-        material.SetFloat("_Mode", 3f);
-        material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-        material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-        material.SetInt("_ZWrite", 0);
-        material.DisableKeyword("_ALPHATEST_ON");
-        material.EnableKeyword("_ALPHABLEND_ON");
-        material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-        material.renderQueue = 3000;
+        Material material = new Material(Shader.Find("Sprites/Default"));
+        material.name = name;
+        Color c = color;
+        c.a = 0.42f;
+        material.color = c;
         return material;
     }
 
