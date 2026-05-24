@@ -106,8 +106,11 @@ public class ChineseTextRenderer : MonoBehaviour
         if (_text == newText) return;
         _text = newText;
         _loaded = false;
-        _image.sprite = null;
-        LoadSprite();
+        if (_image != null)
+        {
+            _image.sprite = null;
+            LoadSprite();
+        }
     }
 
     public void SetColor(Color color)

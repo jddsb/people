@@ -18,8 +18,13 @@ public partial class WheelRunnerBootstrap
         canvasObject.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         canvasObject.AddComponent<GraphicRaycaster>();
 
-        scoreText = CreateText(canvasObject.transform, "Score Text", "分数\n0", new Vector2(28f, -200f), TextAnchor.UpperLeft, 32, whiteMaterial.color);
-        heightText = CreateText(canvasObject.transform, "Height Text", "高度 0.72", new Vector2(-28f, -200f), TextAnchor.UpperRight, 32, whiteMaterial.color);
+        CreateChineseLabel(canvasObject.transform, "Score Label", "分数", new Vector2(28f, -188f), TextAnchor.UpperLeft, 32, whiteMaterial.color, 120, 48);
+        scoreText = CreateText(canvasObject.transform, "Score Value", "0", new Vector2(80f, -268f), TextAnchor.UpperLeft, 32, whiteMaterial.color);
+        scoreText.rectTransform.sizeDelta = new Vector2(200f, 48f);
+
+        CreateChineseLabel(canvasObject.transform, "Height Label", "高度", new Vector2(-28f, -188f), TextAnchor.UpperRight, 32, whiteMaterial.color, 120, 48);
+        heightText = CreateText(canvasObject.transform, "Height Value", "0.72", new Vector2(-58f, -268f), TextAnchor.UpperRight, 32, whiteMaterial.color);
+        heightText.rectTransform.sizeDelta = new Vector2(200f, 48f);
         //messageText = CreateText(canvasObject.transform, "Message Text", "拖动左右移动；跑道循环无尽，速度会越来越快", new Vector2(0f, 72f), TextAnchor.LowerCenter, 20, whiteMaterial.color);
         BuildTutorialGuide(canvasObject.transform);
         BuildRetryButton(canvasObject.transform);
@@ -82,6 +87,33 @@ public partial class WheelRunnerBootstrap
         rectTransform.anchoredPosition = anchoredPosition;
         rectTransform.sizeDelta = new Vector2(720f, 110f);
         return uiText;
+    }
+
+    private ChineseTextRenderer CreateChineseLabel(Transform parent, string name, string text, Vector2 anchoredPosition, TextAnchor alignment, int fontSize, Color color, int texWidth, int texHeight)
+    {
+        GameObject obj = new GameObject(name);
+        Register(obj);
+        obj.transform.SetParent(parent, false);
+
+        RectTransform rect = obj.AddComponent<RectTransform>();
+        float anchorX = alignment == TextAnchor.UpperRight ? 1f : alignment == TextAnchor.LowerCenter ? 0.5f : 0f;
+        float anchorY = alignment == TextAnchor.LowerCenter ? 0f : 1f;
+        rect.anchorMin = new Vector2(anchorX, anchorY);
+        rect.anchorMax = rect.anchorMin;
+        rect.pivot = new Vector2(anchorX, anchorY);
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = new Vector2(texWidth, texHeight);
+
+        ChineseTextRenderer ctr = obj.AddComponent<ChineseTextRenderer>();
+        ctr.SetText(text);
+        ctr.fontSize = fontSize;
+        ctr.textColor = color;
+        ctr.fontStyle = FontStyle.Bold;
+        ctr.alignment = alignment;
+        ctr.textureWidth = texWidth;
+        ctr.textureHeight = texHeight;
+
+        return ctr;
     }
 
     private GameObject CreateUiImage(Transform parent, string name, Color color)
@@ -369,14 +401,12 @@ public partial class WheelRunnerBootstrap
     {
         if (scoreText != null)
         {
-           // scoreText.text = "分数\n" + score + "\nLap " + (lapCount + 1);
-           scoreText.text = "分数\n" + score ;
+           scoreText.text = score.ToString();
         }
 
         if (heightText != null)
         {
-            //heightText.text = "Color " + wheelColor + "\n高度 " + targetRadius.ToString("0.00");
-            heightText.text = "高度\n" + targetRadius.ToString("0.00");
+            heightText.text = targetRadius.ToString("0.00");
         }
 
         if (progressSlider != null)
