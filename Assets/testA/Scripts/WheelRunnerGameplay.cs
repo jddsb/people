@@ -6,12 +6,23 @@ public partial class WheelRunnerBootstrap
     {
         float horizontal = Input.GetAxisRaw("Horizontal") * horizontalSpeed * Time.deltaTime;
 
-        if (Input.GetMouseButtonDown(0))
+        bool pointerDown = Input.GetMouseButtonDown(0);
+        bool pointerUp = Input.GetMouseButtonUp(0);
+#if UNITY_WEBGL && !UNITY_EDITOR
+        if (Input.touchCount > 0)
+        {
+            Touch touch = Input.GetTouch(0);
+            pointerDown = pointerDown || touch.phase == TouchPhase.Began;
+            pointerUp = pointerUp || touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled;
+        }
+#endif
+
+        if (pointerDown)
         {
             isDragging = true;
             lastPointerX = Input.mousePosition.x;
         }
-        else if (Input.GetMouseButtonUp(0))
+        else if (pointerUp)
         {
             isDragging = false;
         }

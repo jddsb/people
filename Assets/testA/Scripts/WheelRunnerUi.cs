@@ -66,7 +66,7 @@ public partial class WheelRunnerBootstrap
         textObject.transform.SetParent(parent, false);
         Text uiText = textObject.AddComponent<Text>();
         uiText.text = text;
-        uiText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        uiText.font = TuanJieFontHelper.GetSystemFontWithChinese();
         uiText.fontSize = fontSize;
         uiText.fontStyle = FontStyle.Bold;
         uiText.alignment = alignment;
@@ -99,6 +99,8 @@ public partial class WheelRunnerBootstrap
         return imageObject;
     }
 
+    private Image tutorialHandImage;
+
     private void BuildTutorialGuide(Transform parent)
     {
         GameObject rootObject = new GameObject("Tutorial Guide");
@@ -110,6 +112,8 @@ public partial class WheelRunnerBootstrap
         tutorialRoot.pivot = new Vector2(0.5f, 0.5f);
         tutorialRoot.anchoredPosition = new Vector2(0f, 150f);
         tutorialRoot.sizeDelta = new Vector2(360f, 190f);
+
+        BuildTutorialHandSprite(rootObject.transform);
 
         Text title = CreateText(rootObject.transform, "Tutorial Text", "Drag to Move", new Vector2(0f, 50f), TextAnchor.MiddleCenter, 34, whiteMaterial.color);
         title.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
@@ -123,13 +127,79 @@ public partial class WheelRunnerBootstrap
         arrow.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
         arrow.rectTransform.pivot = new Vector2(0.5f, 0.5f);
         arrow.rectTransform.sizeDelta = new Vector2(260f, 60f);
+    }
 
-        Text hand = CreateText(rootObject.transform, "Tutorial Hand", "☝", new Vector2(0f, -46f), TextAnchor.MiddleCenter, 58, whiteMaterial.color);
-        hand.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-        hand.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-        hand.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        hand.rectTransform.sizeDelta = new Vector2(120f, 100f);
-        tutorialHand = hand.rectTransform;
+    private void BuildTutorialHandSprite(Transform parent)
+    {
+        GameObject handObject = new GameObject("Tutorial Hand");
+        Register(handObject);
+        handObject.transform.SetParent(parent, false);
+        tutorialHand = handObject.AddComponent<RectTransform>();
+        tutorialHand.anchorMin = new Vector2(0.5f, 0.5f);
+        tutorialHand.anchorMax = new Vector2(0.5f, 0.5f);
+        tutorialHand.pivot = new Vector2(0.5f, 0.5f);
+        tutorialHand.anchoredPosition = new Vector2(0f, -46f);
+        tutorialHand.sizeDelta = new Vector2(90f, 90f);
+
+        tutorialHandImage = handObject.AddComponent<Image>();
+        tutorialHandImage.raycastTarget = false;
+
+        Texture2D tex = CreateHandTexture(64, 64);
+        Sprite handSprite = Sprite.Create(tex, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 64);
+        handSprite.name = "Runtime Tutorial Hand";
+
+        tutorialHandImage.sprite = handSprite;
+        tutorialHandImage.color = whiteMaterial.color;
+    }
+
+    private static Texture2D CreateHandTexture(int w, int h)
+    {
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+        tex.wrapMode = TextureWrapMode.Clamp;
+
+        Color32[] pixels = new Color32[w * h];
+        for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color32(0, 0, 0, 0);
+
+        int SetIdx(int x, int y)
+        {
+            if (x >= 0 && x < w && y >= 0 && y < h) return y * w + x;
+            return -1;
+        }
+
+        void SetPixel(int x, int y, byte r, byte g, byte b)
+        {
+            int idx = SetIdx(x, y);
+            if (idx >= 0) pixels[idx] = new Color32(r, g, b, 255);
+        }
+
+        void FillCircle(int cx, int cy, int rad, byte r, byte g, byte b)
+        {
+            for (int dy = -rad - 1; dy <= rad + 1; dy++)
+            for (int dx = -rad - 1; dx <= rad + 1; dx++)
+                if (dx * dx + dy * dy <= rad * rad)
+                    SetPixel(cx + dx, cy + dy, r, g, b);
+        }
+
+        void FillRect(int x1, int y1, int x2, int y2, byte r, byte g, byte b)
+        {
+            for (int y = y1; y < y2; y++)
+            for (int x = x1; x < x2; x++)
+                SetPixel(x, y, r, g, b);
+        }
+
+        byte c = 255;
+        FillCircle(32, 54, 16, c, c, c);
+        FillRect(24, 10, 40, 50, c, c, c);
+        FillCircle(26, 13, 7, c, c, c);
+        FillCircle(38, 13, 7, c, c, c);
+        FillCircle(32, 8,  7, c, c, c);
+        FillCircle(20, 24, 6, c, c, c);
+        FillCircle(44, 24, 6, c, c, c);
+
+        tex.SetPixels32(pixels);
+        tex.Apply();
+        return tex;
     }
 
     private void BuildRetryButton(Transform parent)

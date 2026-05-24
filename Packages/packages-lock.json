@@ -19,6 +19,12 @@
       },
       "url": "https://packages.tuanjie.cn"
     },
+    "com.bytedance.starksdk": {
+      "version": "file:../Assets/../LocalPackages/com.bytedance.starksdk@6.7.5",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "com.kuaishou.minigame": {
       "version": "https://github.com/ksminigame/minigame-tuanjie-transform-sdk.git",
       "depth": 0,
@@ -33,42 +39,19 @@
       "dependencies": {},
       "hash": "4443e5a9bcf800118f7c3e10a7750e804ed3121b"
     },
-    "com.tencent.puerts.agent": {
-      "version": "file:D:/puerTS/PuerTS_Agent_3.0.2/agent",
+    "com.unity.2d.sprite": {
+      "version": "1.0.0",
       "depth": 0,
-      "source": "local",
-      "dependencies": {
-        "com.tencent.puerts.v8": "3.0.2"
-      }
-    },
-    "com.tencent.puerts.core": {
-      "version": "file:D:/puerTS/PuerTS_Core_3.0.2/core",
-      "depth": 0,
-      "source": "local",
+      "source": "builtin",
       "dependencies": {}
     },
-    "com.tencent.puerts.mcp": {
-      "version": "file:D:/puerTS/PuerTS_Mcp_3.0.2/mcp",
+    "com.unity.2d.tilemap": {
+      "version": "1.0.0",
       "depth": 0,
-      "source": "local",
+      "source": "builtin",
       "dependencies": {
-        "com.tencent.puerts.nodejs": "3.0.2"
-      }
-    },
-    "com.tencent.puerts.nodejs": {
-      "version": "file:D:/puerTS/PuerTS_Nodejs_3.0.2/nodejs",
-      "depth": 0,
-      "source": "local",
-      "dependencies": {
-        "com.tencent.puerts.core": "3.0.2"
-      }
-    },
-    "com.tencent.puerts.v8": {
-      "version": "file:D:/puerTS/PuerTS_V8_3.0.2/v8",
-      "depth": 0,
-      "source": "local",
-      "dependencies": {
-        "com.tencent.puerts.core": "3.0.2"
+        "com.unity.modules.tilemap": "1.0.0",
+        "com.unity.modules.uielements": "1.0.0"
       }
     },
     "com.unity.adaptiveperformance": {
@@ -78,6 +61,34 @@
       "dependencies": {
         "com.unity.subsystemregistration": "1.1.0",
         "com.unity.profiling.core": "1.0.2"
+      },
+      "url": "https://packages.tuanjie.cn"
+    },
+    "com.unity.ads": {
+      "version": "4.4.2",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.ugui": "1.0.0"
+      },
+      "url": "https://packages.tuanjie.cn"
+    },
+    "com.unity.ai.navigation": {
+      "version": "1.1.5",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.modules.ai": "1.0.0"
+      },
+      "url": "https://packages.tuanjie.cn"
+    },
+    "com.unity.analytics": {
+      "version": "3.8.1",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.services.analytics": "1.0.4",
+        "com.unity.ugui": "1.0.0"
       },
       "url": "https://packages.tuanjie.cn"
     },
@@ -167,6 +178,41 @@
       "dependencies": {},
       "url": "https://packages.tuanjie.cn"
     },
+    "com.unity.purchasing": {
+      "version": "4.11.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.ugui": "1.0.0",
+        "com.unity.modules.unitywebrequest": "1.0.0",
+        "com.unity.modules.jsonserialize": "1.0.0",
+        "com.unity.modules.androidjni": "1.0.0",
+        "com.unity.services.core": "1.8.2"
+      },
+      "url": "https://packages.tuanjie.cn"
+    },
+    "com.unity.services.analytics": {
+      "version": "6.0.3",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.ugui": "1.0.0",
+        "com.unity.services.core": "1.12.4",
+        "com.unity.modules.jsonserialize": "1.0.0"
+      },
+      "url": "https://packages.tuanjie.cn"
+    },
+    "com.unity.services.core": {
+      "version": "1.14.0",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.modules.androidjni": "1.0.0",
+        "com.unity.nuget.newtonsoft-json": "3.2.1",
+        "com.unity.modules.unitywebrequest": "1.0.0"
+      },
+      "url": "https://packages.tuanjie.cn"
+    },
     "com.unity.subsystemregistration": {
       "version": "1.1.1",
       "depth": 2,
@@ -224,6 +270,16 @@
       "dependencies": {
         "com.unity.ugui": "1.0.0",
         "com.unity.modules.jsonserialize": "1.0.0"
+      },
+      "url": "https://packages.tuanjie.cn"
+    },
+    "com.unity.xr.legacyinputhelpers": {
+      "version": "2.1.12",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.modules.vr": "1.0.0",
+        "com.unity.modules.xr": "1.0.0"
       },
       "url": "https://packages.tuanjie.cn"
     },

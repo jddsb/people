@@ -78,7 +78,11 @@ public partial class WheelRunnerBootstrap
         Collider collider = gameObject.GetComponent<Collider>();
         if (collider != null)
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            DestroyImmediate(collider);
+#else
             Destroy(collider);
+#endif
         }
     }
 }

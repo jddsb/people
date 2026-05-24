@@ -219,7 +219,14 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
         if (!gameStarted)
         {
             UpdateTutorialGuide();
-            if (Input.GetMouseButtonDown(0) || Input.touchCount > 0)
+            bool startTriggered = Input.GetMouseButtonDown(0) || Input.touchCount > 0;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (Input.touchCount > 0)
+            {
+                startTriggered = startTriggered || Input.GetTouch(0).phase == TouchPhase.Began;
+            }
+#endif
+            if (startTriggered)
             {
                 StartGame();
             }

@@ -14,6 +14,7 @@ public partial class WheelRunnerBootstrap
         wheelObject.name = "Rolling Color Wheel";
         wheelObject.transform.SetParent(runnerRoot, false);
         wheelObject.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+        RemoveCollider(wheelObject);
         wheel = wheelObject.transform;
         SetMaterial(wheelObject, GetMaterial(wheelColor));
 
@@ -72,6 +73,7 @@ public partial class WheelRunnerBootstrap
         child.transform.localPosition = localPosition;
         child.transform.localScale = localScale;
         SetMaterial(child, material);
+        RemoveCollider(child);
         return child;
     }
 }
