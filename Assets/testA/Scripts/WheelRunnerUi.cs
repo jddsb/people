@@ -18,9 +18,9 @@ public partial class WheelRunnerBootstrap
         canvasObject.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         canvasObject.AddComponent<GraphicRaycaster>();
 
-        scoreText = CreateText(canvasObject.transform, "Score Text", "Score\n0", new Vector2(28f, -28f), TextAnchor.UpperLeft, 32, whiteMaterial.color);
-        heightText = CreateText(canvasObject.transform, "Height Text", "Height 0.72", new Vector2(-28f, -28f), TextAnchor.UpperRight, 24, whiteMaterial.color);
-        messageText = CreateText(canvasObject.transform, "Message Text", "拖动左右移动；跑道循环无尽，速度会越来越快，R 重开", new Vector2(0f, 72f), TextAnchor.LowerCenter, 20, whiteMaterial.color);
+        scoreText = CreateText(canvasObject.transform, "Score Text", "分数\n0", new Vector2(28f, -100f), TextAnchor.UpperLeft, 32, whiteMaterial.color);
+        heightText = CreateText(canvasObject.transform, "Height Text", "高度 0.72", new Vector2(-28f, -100f), TextAnchor.UpperRight, 32, whiteMaterial.color);
+        //messageText = CreateText(canvasObject.transform, "Message Text", "拖动左右移动；跑道循环无尽，速度会越来越快", new Vector2(0f, 72f), TextAnchor.LowerCenter, 20, whiteMaterial.color);
         BuildTutorialGuide(canvasObject.transform);
         BuildRetryButton(canvasObject.transform);
 
@@ -31,7 +31,7 @@ public partial class WheelRunnerBootstrap
         sliderRect.anchorMin = new Vector2(0.5f, 1f);
         sliderRect.anchorMax = new Vector2(0.5f, 1f);
         sliderRect.pivot = new Vector2(0.5f, 1f);
-        sliderRect.anchoredPosition = new Vector2(0f, -30f);
+        sliderRect.anchoredPosition = new Vector2(0f, -100f);
         sliderRect.sizeDelta = new Vector2(320f, 28f);
         progressSlider = sliderObject.AddComponent<Slider>();
         progressSlider.minValue = 0f;
@@ -110,19 +110,19 @@ public partial class WheelRunnerBootstrap
         tutorialRoot.anchorMin = new Vector2(0.5f, 0f);
         tutorialRoot.anchorMax = new Vector2(0.5f, 0f);
         tutorialRoot.pivot = new Vector2(0.5f, 0.5f);
-        tutorialRoot.anchoredPosition = new Vector2(0f, 150f);
+        tutorialRoot.anchoredPosition = new Vector2(0f, 700f);
         tutorialRoot.sizeDelta = new Vector2(360f, 190f);
 
         BuildTutorialHandSprite(rootObject.transform);
 
-        Text title = CreateText(rootObject.transform, "Tutorial Text", "Drag to Move", new Vector2(0f, 50f), TextAnchor.MiddleCenter, 34, whiteMaterial.color);
+       /* Text title = CreateText(rootObject.transform, "Tutorial Text", "Drag to Move", new Vector2(0f, 50f), TextAnchor.MiddleCenter, 34, whiteMaterial.color);
         title.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
         title.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
         title.rectTransform.pivot = new Vector2(0.5f, 0.5f);
         title.rectTransform.sizeDelta = new Vector2(420f, 70f);
-        title.fontStyle = FontStyle.Bold;
+        title.fontStyle = FontStyle.Bold;*/
 
-        Text arrow = CreateText(rootObject.transform, "Tutorial Swipe Arrows", "<      >", new Vector2(0f, 2f), TextAnchor.MiddleCenter, 38, new Color(1f, 1f, 1f, 0.88f));
+        Text arrow = CreateText(rootObject.transform, "Tutorial Swipe Arrows", "<      >", new Vector2(0f, 10f), TextAnchor.MiddleCenter, 38, new Color(0f, 1f, 0f, 0.88f));
         arrow.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
         arrow.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
         arrow.rectTransform.pivot = new Vector2(0.5f, 0.5f);
@@ -369,12 +369,14 @@ public partial class WheelRunnerBootstrap
     {
         if (scoreText != null)
         {
-            scoreText.text = "Score\n" + score + "\nLap " + (lapCount + 1);
+           // scoreText.text = "分数\n" + score + "\nLap " + (lapCount + 1);
+           scoreText.text = "分数\n" + score ;
         }
 
         if (heightText != null)
         {
-            heightText.text = "Color " + wheelColor + "\nHeight " + targetRadius.ToString("0.00");
+            //heightText.text = "Color " + wheelColor + "\n高度 " + targetRadius.ToString("0.00");
+            heightText.text = "高度\n" + targetRadius.ToString("0.00");
         }
 
         if (progressSlider != null)

@@ -240,7 +240,7 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
         UpdateFallingBalls();
         CheckPads();
         CheckSpikeTraps();
-        CheckFallingBalls();
+        //CheckFallingBalls();
         CheckBaffles();
         CheckDeathCondition();
         UpdateUi();
