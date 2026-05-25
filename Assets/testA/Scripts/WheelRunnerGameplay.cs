@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public partial class WheelRunnerBootstrap
@@ -118,9 +119,9 @@ public partial class WheelRunnerBootstrap
     {
         WheelRunnerColor ballColor = GetDifferentBallColor();
         float[] lanes = { -2.2f, 0f, 2.2f };
-        float x = lanes[Random.Range(0, lanes.Length)];
-        float z = zPosition + fallingBallSpawnDistance + Random.Range(-7f, 13f);
-        float y = 8.5f + Random.Range(0f, 3.5f);
+        float x = lanes[UnityEngine.Random.Range(0, lanes.Length)];
+        float z = zPosition + fallingBallSpawnDistance + UnityEngine.Random.Range(-7f, 13f);
+        float y = 8.5f + UnityEngine.Random.Range(0f, 3.5f);
 
         GameObject ballObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         Register(ballObject);
@@ -134,7 +135,7 @@ public partial class WheelRunnerBootstrap
 
     private WheelRunnerColor GetDifferentBallColor()
     {
-        int offset = Random.Range(1, 3);
+        int offset = UnityEngine.Random.Range(1, 3);
         return (WheelRunnerColor)(((int)wheelColor + offset) % 3);
     }
 
@@ -237,6 +238,33 @@ public partial class WheelRunnerBootstrap
             score = Mathf.Max(0, score + (isMatch ? 1 : -1));
             PulsePad(pad.Visual, isMatch);
             ShowPadMessage(isMatch, pad.Color, radiusChanged);
+            ReportSidebarScoreUpdate();
+        }
+    }
+    
+    private void ReportSidebarScoreUpdate()
+    {
+        if (!sidebarReady || sidebarManager == null) return;
+        
+        try
+        {
+            Type sidebarType = sidebarManager.GetType();
+            
+            System.Reflection.PropertyInfo isFromSidebarProp = sidebarType.GetProperty("IsFromSidebar");
+            bool isFromSidebar = isFromSidebarProp != null && (bool)isFromSidebarProp.GetValue(sidebarManager);
+            
+            if (isFromSidebar)
+            {
+                System.Reflection.MethodInfo onScoreUpdate = sidebarType.GetMethod("OnGameScoreUpdate");
+                if (onScoreUpdate != null)
+                {
+                    onScoreUpdate.Invoke(sidebarManager, new object[] { score });
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("ReportSidebarScoreUpdate error: " + e.Message);
         }
     }
 

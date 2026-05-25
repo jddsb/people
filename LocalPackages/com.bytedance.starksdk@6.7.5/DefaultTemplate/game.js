@@ -16,7 +16,7 @@ const managerConfig = {
      DATA_FILE_SIZE: "$DATA_FILE_SIZE",
      OPT_DATA_FILE_SIZE: "$OPT_DATA_FILE_SIZE",
      useDataCDNAsStreamingAssetsUrl: $USE_DATA_CDN,
-	 
+	
      loadDataPackageFromSubpackage: $LOAD_DATA_FROM_SUBPACKAGE,
      compressDataPackage: $COMPRESS_DATA_PACKAGE,
 	   ...wasmSplitValues,
@@ -41,28 +41,162 @@ const managerConfig = {
 };
 GameGlobal.managerConfig = managerConfig;
 
+let launchOptions = null;
+let isFromSidebar = false;
+
+function getLaunchOptions() {
+  if (launchOptions) return launchOptions;
+  
+  try {
+    if (typeof tt !== 'undefined' && tt.getLaunchOptionsSync) {
+      launchOptions = tt.getLaunchOptionsSync();
+      console.log("Launch options:", launchOptions);
+      
+      if (launchOptions.scene === 'sidebar' || 
+          (launchOptions.query && launchOptions.query.scene === 'sidebar') ||
+          (launchOptions.sceneInfo && launchOptions.sceneInfo.scene === 'sidebar')) {
+        isFromSidebar = true;
+        console.log("Game launched from sidebar");
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to get launch options:", e);
+  }
+  
+  return launchOptions;
+}
+
+function handleSidebarEntry() {
+  if (!isFromSidebar) return;
+  
+  try {
+    if (typeof tt !== 'undefined' && tt.reportSideBarEntry) {
+      tt.reportSideBarEntry({
+        success: function(res) {
+          console.log("Sidebar entry reported:", res);
+        },
+        fail: function(err) {
+          console.error("Failed to report sidebar entry:", err);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("Failed to handle sidebar entry:", e);
+  }
+}
+
+function navigateToSidebar() {
+  try {
+    if (typeof tt !== 'undefined' && tt.navigateToScene) {
+      tt.navigateToScene({
+        scene: 'sidebar',
+        success: function(res) {
+          console.log("Navigate to sidebar success:", res);
+        },
+        fail: function(err) {
+          console.error("Navigate to sidebar failed:", err);
+        }
+      });
+    } else if (typeof tt !== 'undefined' && tt.switchTab) {
+      tt.switchTab({
+        url: '/pages/index/index',
+        success: function(res) {
+          console.log("Switch tab success:", res);
+        },
+        fail: function(err) {
+          console.error("Switch tab failed:", err);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("Failed to navigate to sidebar:", e);
+  }
+}
+
+function registerRetainSideBar(data) {
+  try {
+    if (typeof tt !== 'undefined' && tt.registerRetainSideBar) {
+      tt.registerRetainSideBar({
+        scene: 'sidebar',
+        data: data || {},
+        success: function(res) {
+          console.log("Register retain sidebar success:", res);
+        },
+        fail: function(err) {
+          console.error("Register retain sidebar failed:", err);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("Failed to register retain sidebar:", e);
+  }
+}
+
+function enterRetainSideBar() {
+  try {
+    if (typeof tt !== 'undefined' && tt.enterRetainSideBar) {
+      tt.enterRetainSideBar({
+        success: function(res) {
+          console.log("Enter retain sidebar success:", res);
+        },
+        fail: function(err) {
+          console.error("Enter retain sidebar failed:", err);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("Failed to enter retain sidebar:", e);
+  }
+}
+
+function reportTaskComplete(taskId, data) {
+  try {
+    if (typeof tt !== 'undefined' && tt.reportSideBarTask) {
+      tt.reportSideBarTask({
+        taskId: taskId,
+        data: data || {},
+        success: function(res) {
+          console.log("Report task complete:", res);
+        },
+        fail: function(err) {
+          console.error("Report task complete failed:", err);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("Failed to report task:", e);
+  }
+}
+
+GameGlobal.sidebarManager = {
+  getLaunchOptions: getLaunchOptions,
+  isFromSidebar: function() { return isFromSidebar; },
+  handleSidebarEntry: handleSidebarEntry,
+  navigateToSidebar: navigateToSidebar,
+  registerRetainSideBar: registerRetainSideBar,
+  enterRetainSideBar: enterRetainSideBar,
+  reportTaskComplete: reportTaskComplete
+};
+
 function main() {
   const UnityManager = requirePlugin('UnityPlugin/index.js');
   console.log("UnityManager.version = ", UnityManager.version);
+  
+  getLaunchOptions();
+  
   const info = tt.getSystemInfoSync();
   const canvas = tt.createCanvas();
   canvas.width = info.screenWidth;
   canvas.height = info.screenHeight;
 
   Object.assign(managerConfig, {
-    // callmain结束后立即隐藏封面视频
     hideAfterCallmain: $HIDE_AFTER_CALLMAIN,
     
     disableLoadingPage: $DISABLE_LOADING_PAGE,
     loadingPageConfig: {
-      /**
-       * !!注意：修改设计宽高和缩放模式后，需要修改文字和进度条样式。
-       */
-	  
       designWidth: 0,
       designHeight: 0,
       scaleMode: scaleMode.default,
-      // 以下配置的样式，尺寸相对设计宽高
       textConfig: {
         firstStartText: '首次加载请耐心等待',
         downloadingText: ['正在加载资源'],
@@ -70,7 +204,6 @@ function main() {
         initText: '初始化中',
         completeText: '开始游戏',
         textDuration: 1500,
-        // 文字样式
         style: {
           bottom: $TEXTCONFIG_BOTTOM,
           height: $TEXTCONFIG_HEIGHT,
@@ -79,7 +212,6 @@ function main() {
           fontSize: 13,
         },
       },
-      // 进度条样式
       barConfig: {
         style: {
           width: $BARCONFIG_WIDTH,
@@ -89,7 +221,6 @@ function main() {
           backgroundColor: '#ffffff',
         },
       },
-      // 一般不修改，控制icon样式
       iconConfig: {
         visible: true,
         style: {
@@ -98,44 +229,31 @@ function main() {
           bottom: $ICONCONFIG_BOTTOM,
         },
       },
-      // 加载页的素材配置
       materialConfig: {
-        backgroundImage: 'images/background.png',// 背景图片
-        iconImage: 'images/unity_logo.png', // icon图片，一般不更换
+        backgroundImage: 'images/background.png',
+        iconImage: 'images/unity_logo.png',
       },
     },
   });
 
   const gameManager = new UnityManager(canvas, managerConfig, unityNamespace);
+  
   gameManager.onLaunchProgress((e) => {
-    // 插件加载各个阶段完成时的时机回调
-    
-    // interface LaunchEvent {
-    //   type: LaunchEventType;
-    //   data: {
-    //     costTimeMs: number; // 阶段耗时
-    //     runTimeMs: number; // 总耗时
-    //     loadDataPackageFromSubpackage: boolean; // 首包资源是否通过小游戏分包加载
-    //     isVisible: boolean; // 当前是否处于前台，onShow/onHide
-    //     useCodeSplit: boolean; // 是否使用代码分包
-    //     isHighPerformance: boolean; // 是否iOS高性能模式
-    //     needDownloadDataPackage: boolean; // 本次启动是否需要下载资源包
-    //   };
-    // }
     if (e.type === launchEventType.launchPlugin) { }
     if (e.type === launchEventType.loadWasm) { }
     if (e.type === launchEventType.compileWasm) { }
     if (e.type === launchEventType.loadAssets) { }
     if (e.type === launchEventType.readAssets) { }
-    if (e.type === launchEventType.prepareGame) { }
+    if (e.type === launchEventType.prepareGame) { 
+      handleSidebarEntry();
+    }
   });
 
   gameManager.onModulePrepared(() => {
-    // unityModule has been called
+    console.log("Unity module prepared, sidebar status:", isFromSidebar);
   });
 
   gameManager.onLogError = function (err) {
-    // 插件捕获到引擎错误后，通过此事件抛给游戏
     console.error(err);
   };
 

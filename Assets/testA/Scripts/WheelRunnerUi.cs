@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -317,6 +318,40 @@ public partial class WheelRunnerBootstrap
         if (messageText != null)
         {
             messageText.text = string.Empty;
+        }
+        
+        ReportSidebarGameStarted();
+    }
+    
+    private void ReportSidebarGameStarted()
+    {
+        if (!sidebarReady || sidebarManager == null) return;
+        
+        try
+        {
+            Type sidebarType = sidebarManager.GetType();
+            
+            System.Reflection.PropertyInfo isFromSidebarProp = sidebarType.GetProperty("IsFromSidebar");
+            bool isFromSidebar = isFromSidebarProp != null && (bool)isFromSidebarProp.GetValue(sidebarManager);
+            
+            if (isFromSidebar)
+            {
+                System.Reflection.MethodInfo onGameStarted = sidebarType.GetMethod("OnGameStarted");
+                if (onGameStarted != null)
+                {
+                    onGameStarted.Invoke(sidebarManager, null);
+                }
+                
+                System.Reflection.MethodInfo registerRetain = sidebarType.GetMethod("RegisterRetainSideBar");
+                if (registerRetain != null)
+                {
+                    registerRetain.Invoke(sidebarManager, null);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("ReportSidebarGameStarted error: " + e.Message);
         }
     }
 

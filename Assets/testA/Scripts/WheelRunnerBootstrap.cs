@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -5,6 +6,12 @@ using UnityEngine.UI;
 
 public sealed partial class WheelRunnerBootstrap : MonoBehaviour
 {
+    [Header("Sidebar")]
+    [SerializeField] private bool enableSidebarFeature = true;
+    
+    private MonoBehaviour sidebarManager;
+    private bool sidebarReady = false;
+
     public enum WheelRunnerColor
     {
         Green,
@@ -186,6 +193,40 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
         BuildWorld();
         UpdateWheelScale(true);
         UpdateUi();
+        
+        InitializeSidebarManager();
+    }
+    
+    private void InitializeSidebarManager()
+    {
+        if (!enableSidebarFeature) return;
+        
+        try
+        {
+            Type sidebarType = Type.GetType("SidebarManager, Assembly-CSharp");
+            if (sidebarType != null)
+            {
+                GameObject sidebarObj = new GameObject("SidebarManager");
+                sidebarManager = (MonoBehaviour)sidebarObj.AddComponent(sidebarType);
+                
+                System.Reflection.MethodInfo initMethod = sidebarType.GetMethod("InitializeSidebar");
+                if (initMethod != null)
+                {
+                    initMethod.Invoke(sidebarManager, null);
+                }
+                
+                Debug.Log("SidebarManager initialized");
+                sidebarReady = true;
+            }
+            else
+            {
+                Debug.LogWarning("SidebarManager type not found, sidebar feature disabled");
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Failed to initialize SidebarManager: " + e.Message);
+        }
     }
 
     private void Update()
@@ -274,6 +315,34 @@ public sealed partial class WheelRunnerBootstrap : MonoBehaviour
         }
 
         ShowRetryButton();
+        
+        ReportSidebarGameCompleted();
+    }
+    
+    private void ReportSidebarGameCompleted()
+    {
+        if (!sidebarReady || sidebarManager == null) return;
+        
+        try
+        {
+            Type sidebarType = sidebarManager.GetType();
+            
+            System.Reflection.PropertyInfo isFromSidebarProp = sidebarType.GetProperty("IsFromSidebar");
+            bool isFromSidebar = isFromSidebarProp != null && (bool)isFromSidebarProp.GetValue(sidebarManager);
+            
+            if (isFromSidebar)
+            {
+                System.Reflection.MethodInfo onGameCompleted = sidebarType.GetMethod("OnGameCompleted");
+                if (onGameCompleted != null)
+                {
+                    onGameCompleted.Invoke(sidebarManager, new object[] { score });
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("ReportSidebarGameCompleted error: " + e.Message);
+        }
     }
 
     private void UpdateDeathAnimation()

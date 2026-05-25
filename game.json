@@ -4,5 +4,12 @@
   "enableIOSHighPerformanceModePlus": false,
   "graphicsDeviceType": [
     "OpenGLES3"
-  ]
+  ],
+  "iconUrl": "images/unity_logo.png",
+  "retainSideBar": {
+    "enabled": true,
+    "entryIcon": "images/unity_logo.png",
+    "entryText": "游戏",
+    "stayTime": 30000
+  }
 }
